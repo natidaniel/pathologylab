@@ -1,3 +1,19 @@
 {
 
+  "config": {
+    "use_cuda": true,
+    "num_workers": 4,
+    "descrioption": ""
+  },
+
+  "PD-L1net": {
+    "batch_size": 32,
+    "shuffle": true,
+    "loss": "...",
+    "eps": 1e-6,
+    "lr": 1e-4,
+    "weight_decay": 1e-5,
+    "n_epochs": 100
+  }
+
 }
