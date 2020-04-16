@@ -89,8 +89,13 @@ class ShapesDataset(utils.Dataset):
             image = np.array(image.resize([info['height'], info['width']]))
         else:  # creates images with white background
             image = np.ones([info['height'], info['width'], 3], dtype=np.uint8) * 255
-
-        for shape, color, dims in info['shapes']:
+        # sorting the shape list due to the priority of each class
+        # that way we ensure that the stronger classes overdraw the weaker ones
+        copy_info = info['shapes']
+        sort_func = lambda elem : self.config.CLASS_TO_ID[elem[0]]
+        copy_info.sort(key=sort_func)
+        # draw the shapes
+        for shape, color, dims in copy_info:
             image = self.draw_shape(image, shape, dims, color)
 
         image_path = os.path.join(self.PATH_SAVE_IMAGES, '{:05d}'.format(image_id))

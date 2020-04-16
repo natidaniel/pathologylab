@@ -63,6 +63,7 @@ class ShapesConfig:
         self.ANNOTATION_DIR = os.path.join(self.PATH_SAVE_DATA, self.ADDED_PREFIX + "mask")
         # the json file name
         self.JSON_OUTPUT_FILENAME = self.ADDED_PREFIX + 'synth_data.json'
+        self.CLASS_TO_ID = dict(zip(self.CLASSES,range(len(self.CLASSES))))
 
 
 def create_dirs(config):
