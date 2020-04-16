@@ -28,32 +28,16 @@ def create_structure(config):
         }
     ]
 
-    CATEGORIES = []
-    for i, c in enumerate(config.CLASSES):
-        CATEGORIES.append({'id':i, 'name':c, 'supercategory': 'type'})
-
     # CATEGORIES = [
     #     {
     #         'id': 1,
     #         'name': 'inf',
     #         'supercategory': 'type',
     #     },
-    #     {
-    #         'id': 2,
-    #         'name': 'neg',
-    #         'supercategory': 'type',
-    #     },
-    #     {
-    #         'id': 3,
-    #         'name': 'pos',
-    #         'supercategory': 'type',
-    #     },
-    #     {
-    #         'id': 4,
-    #         'name': 'other',
-    #         'supercategory': 'type',
-    #     },
     # ]
+    CATEGORIES = []
+    for i, c in enumerate(config.CLASSES):
+        CATEGORIES.append({'id':i, 'name':c, 'supercategory': 'type'})
 
     coco_output = {
         "info": INFO,

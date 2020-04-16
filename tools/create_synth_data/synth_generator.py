@@ -17,6 +17,10 @@ import colorsys
 from PIL import Image
 import utils
 
+#  set a color palette with equidistant color
+CONST_COLOR_PALETTE = [colorsys.hsv_to_rgb(i / 4, 1.0, 1.0) for i in range(4)]
+for i, color in enumerate(CONST_COLOR_PALETTE):
+    CONST_COLOR_PALETTE[i] = tuple([int(color[j] * 255) for j in range(3)])  # convert color to 255 integer dim'
 
 class ShapesDataset(utils.Dataset):
     """Generates the shapes synthetic dataset. The dataset consists of simple
@@ -36,19 +40,22 @@ class ShapesDataset(utils.Dataset):
             # Add classes
             self.add_class(self.config.DATA_NAME, i + 1, c)
 
-        self.COLOR_PALLET = []
+        self.COLOR_PALETTE = []
         if self.config.IS_CONST_COLOR_SHAPES:
-            for _ in range(self.config.NUM_CLASSES):
-                color = colorsys.hsv_to_rgb(random.rand(), 1.0, 1.0)  # ensures no brown color is chosen
-                color = tuple([int(color[i] * 255) for i in range(3)])  # convert color to 255 integer dim'
-                self.COLOR_PALLET.append(color)
+            # for _ in range(self.config.NUM_CLASSES):
+            #     # color = colorsys.hsv_to_rgb(random.rand(), 1.0, 1.0)  # ensures no brown color is chosen
+            #
+            #     color = tuple([int(color[i] * 255) for i in range(3)])  # convert color to 255 integer dim'
+            #     self.COLOR_PALLET.append(color)
+
             # match classes tags to colors
-            self.COLOR_PALLET = dict(zip(self.config.CLASSES,  self.COLOR_PALLET))
+            self.COLOR_PALETTE = dict(zip(self.config.CLASSES, CONST_COLOR_PALETTE))
 
         self.PATH_TO_IMAGE_DIR = self.config.PATH_TO_IMAGE_DIR
         self.PATH_SAVE_IMAGES = self.config.IMAGE_DIR
         self.PATH_SAVE_ANNOTATIONS = self.config.ANNOTATION_DIR
-        ls_dir_images = os.listdir(self.PATH_TO_IMAGE_DIR)
+        if self.config.IS_BG_UNIFIED == False:
+            ls_dir_images = os.listdir(self.PATH_TO_IMAGE_DIR)
 
         height = self.config.IMAGE_HEIGHT
         width = self.config.IMAGE_WIDTH
@@ -166,7 +173,7 @@ class ShapesDataset(utils.Dataset):
             color = tuple([int(color[i]*255) for i in range(3)])  # convert color to 255 integer dim'
         else:
             #  select the color from pre chosen pallet (see in load_shape)
-            color = self.COLOR_PALLET[shape]
+            color = self.COLOR_PALETTE[shape]
         # Center x, y
         buffer = 50
         y = random.randint(buffer, height - buffer - 1)
