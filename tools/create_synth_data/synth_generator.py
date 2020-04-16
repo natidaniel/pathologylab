@@ -48,7 +48,8 @@ class ShapesDataset(utils.Dataset):
         self.PATH_TO_IMAGE_DIR = self.config.PATH_TO_IMAGE_DIR
         self.PATH_SAVE_IMAGES = self.config.IMAGE_DIR
         self.PATH_SAVE_ANNOTATIONS = self.config.ANNOTATION_DIR
-        ls_dir_images = os.listdir(self.PATH_TO_IMAGE_DIR)
+        if self.config.IS_BG_UNIFIED == False:
+            ls_dir_images = os.listdir(self.PATH_TO_IMAGE_DIR)
 
         height = self.config.IMAGE_HEIGHT
         width = self.config.IMAGE_WIDTH
@@ -131,6 +132,7 @@ class ShapesDataset(utils.Dataset):
         """Draws a shape from the given specs."""
         # Get the center x, y and the size s
         x, y, s = dims
+
         if shape == self.config.CLASSES[0]:
             image = cv2.rectangle(image, (x - s, y - s),
                                   (x + s, y + s), color, -1)

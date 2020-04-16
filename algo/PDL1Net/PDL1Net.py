@@ -1,5 +1,5 @@
 
-class PDL1net:
+class PDL1Net:
     """
     class represents a PDL1 net architecture
     """

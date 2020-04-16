@@ -1,26 +1,91 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="7f174459-74a7-4bae-b3f7-22d68fcf67e0" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/pycococreator/examples/shapes/shapes_to_coco.py" beforeDir="false" afterPath="$PROJECT_DIR$/pycococreator/examples/shapes/shapes_to_coco.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pycococreator/examples/shapes/train/annotations/1000_square_0.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/pycococreator/examples/shapes/train/annotations/1001_circle_0.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/pycococreator/examples/shapes/train/annotations/1001_circle_3.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/pycococreator/examples/shapes/train/annotations/1001_square_1.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/pycococreator/examples/shapes/train/annotations/1001_square_2.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/pycococreator/examples/shapes/train/shapes_train2018/1000.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/pycococreator/examples/shapes/train/shapes_train2018/1001.jpeg" beforeDir="false" />
-    </list>
+    <list default="true" id="7f174459-74a7-4bae-b3f7-22d68fcf67e0" name="Default Changelist" comment="" />
+    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
+    <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="FileEditorManager">
+    <leaf>
+      <file leaf-file-name="main_synth.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/main_synth.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="587">
+              <caret line="88" column="26" lean-forward="true" selection-start-line="88" selection-start-column="26" selection-end-line="88" selection-end-column="26" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="pycococreatortools.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/pycococreator/pycococreatortools/pycococreatortools.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="220">
+              <caret line="10" selection-start-line="10" selection-end-line="10" />
+              <folding>
+                <element signature="e#24#33#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="synth_generator.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/synth_generator.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="322">
+              <caret line="118" column="29" lean-forward="true" selection-start-line="118" selection-start-column="29" selection-end-line="118" selection-end-column="29" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
+  </component>
   <component name="Git.Settings">
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/pycococreator" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
+  </component>
+  <component name="IdeDocumentHistory">
+    <option name="CHANGED_PATHS">
+      <list>
+        <option value="$PROJECT_DIR$/pycococreator/pycococreatortools/pycococreatortools.py" />
+        <option value="$PROJECT_DIR$/synth_generator.py" />
+      </list>
+    </option>
+  </component>
+  <component name="ProjectFrameBounds" extendedState="6">
+    <option name="x" value="459" />
+    <option name="y" value="-14" />
+    <option name="width" value="1380" />
+    <option name="height" value="734" />
   </component>
   <component name="ProjectId" id="1aWxXQdb4v6Zbo7sT5ofy9PqyoQ" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectView">
+    <navigator proportions="" version="1">
+      <foldersAlwaysOnTop value="true" />
+    </navigator>
+    <panes>
+      <pane id="Scope" />
+      <pane id="ProjectPane">
+        <subPane>
+          <expand>
+            <path>
+              <item name="create_synth_data" type="b2602c69:ProjectViewProjectNode" />
+              <item name="create_synth_data" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="create_synth_data" type="b2602c69:ProjectViewProjectNode" />
+              <item name="create_synth_data" type="462c0819:PsiDirectoryNode" />
+              <item name="pycococreator" type="462c0819:PsiDirectoryNode" />
+            </path>
+          </expand>
+          <select />
+        </subPane>
+      </pane>
+    </panes>
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showExcludedFiles" value="true" />
@@ -31,6 +96,18 @@
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
+  <component name="RunDashboard">
+    <option name="ruleStates">
+      <list>
+        <RuleState>
+          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
+        </RuleState>
+        <RuleState>
+          <option name="name" value="StatusDashboardGroupingRule" />
+        </RuleState>
+      </list>
+    </option>
+  </component>
   <component name="RunManager">
     <configuration name="main_synth" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="create_synth_data" />
@@ -39,9 +116,9 @@
       <envs>
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
-      <option name="SDK_HOME" value="" />
+      <option name="SDK_HOME" value="C:\Users\SavirLab\AppData\Local\Continuum\Anaconda3\envs\pdl1_venv\python.exe" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
+      <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main_synth.py" />
@@ -49,9 +126,6 @@
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
     </configuration>
     <recent_temporary>
       <list>
@@ -72,72 +146,68 @@
     </task>
     <servers />
   </component>
+  <component name="ToolWindowManager">
+    <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
+    <layout>
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.24973656" />
+      <window_info anchor="bottom" id="TODO" order="6" />
+      <window_info anchor="bottom" id="Event Log" side_tool="true" />
+      <window_info anchor="bottom" id="Run" order="2" />
+      <window_info anchor="bottom" id="Version Control" />
+      <window_info anchor="bottom" id="Python Console" />
+      <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
+      <window_info anchor="bottom" id="Terminal" />
+      <window_info anchor="bottom" id="Debug" order="3" weight="0.09041394" />
+      <window_info id="Favorites" side_tool="true" />
+      <window_info anchor="bottom" id="Find" order="1" />
+      <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
+      <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
+      <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
+      <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
+      <window_info anchor="bottom" id="Message" order="0" />
+      <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
+    </layout>
+  </component>
+  <component name="VcsContentAnnotationSettings">
+    <option name="myLimit" value="2678400000" />
+  </component>
   <component name="WindowStateProjectService">
-    <state x="350" y="134" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1586865298701">
-      <screen x="67" y="27" width="1651" height="901" />
-    </state>
-    <state x="350" y="134" key="#com.intellij.execution.impl.EditConfigurationsDialog/67.27.1651.901@67.27.1651.901" timestamp="1586865298701" />
-    <state x="422" y="53" width="931" height="847" key="CommitChangelistDialog2" timestamp="1586867181078">
-      <screen x="67" y="27" width="1651" height="901" />
-    </state>
-    <state x="422" y="53" width="931" height="847" key="CommitChangelistDialog2/67.27.1651.901@67.27.1651.901" timestamp="1586867181078" />
-    <state x="670" y="234" width="424" height="484" key="FileChooserDialogImpl" timestamp="1586865225156">
-      <screen x="67" y="27" width="1651" height="901" />
-    </state>
-    <state x="670" y="234" width="424" height="484" key="FileChooserDialogImpl/67.27.1651.901@67.27.1651.901" timestamp="1586865225156" />
-    <state width="1628" height="228" key="GridCell.Tab.0.bottom" timestamp="1586867182050">
-      <screen x="67" y="27" width="1651" height="901" />
-    </state>
-    <state width="1628" height="228" key="GridCell.Tab.0.bottom/67.27.1651.901@67.27.1651.901" timestamp="1586867182050" />
-    <state width="1628" height="228" key="GridCell.Tab.0.center" timestamp="1586867182049">
-      <screen x="67" y="27" width="1651" height="901" />
-    </state>
-    <state width="1628" height="228" key="GridCell.Tab.0.center/67.27.1651.901@67.27.1651.901" timestamp="1586867182049" />
-    <state width="1628" height="228" key="GridCell.Tab.0.left" timestamp="1586867182048">
-      <screen x="67" y="27" width="1651" height="901" />
-    </state>
-    <state width="1628" height="228" key="GridCell.Tab.0.left/67.27.1651.901@67.27.1651.901" timestamp="1586867182048" />
-    <state width="1628" height="228" key="GridCell.Tab.0.right" timestamp="1586867182049">
-      <screen x="67" y="27" width="1651" height="901" />
-    </state>
-    <state width="1628" height="228" key="GridCell.Tab.0.right/67.27.1651.901@67.27.1651.901" timestamp="1586867182049" />
-    <state width="1628" height="283" key="GridCell.Tab.1.bottom" timestamp="1586865524945">
-      <screen x="67" y="27" width="1651" height="901" />
-    </state>
-    <state width="1628" height="283" key="GridCell.Tab.1.bottom/67.27.1651.901@67.27.1651.901" timestamp="1586865524945" />
-    <state width="1628" height="283" key="GridCell.Tab.1.center" timestamp="1586865524944">
-      <screen x="67" y="27" width="1651" height="901" />
-    </state>
-    <state width="1628" height="283" key="GridCell.Tab.1.center/67.27.1651.901@67.27.1651.901" timestamp="1586865524944" />
-    <state width="1628" height="283" key="GridCell.Tab.1.left" timestamp="1586865524943">
-      <screen x="67" y="27" width="1651" height="901" />
-    </state>
-    <state width="1628" height="283" key="GridCell.Tab.1.left/67.27.1651.901@67.27.1651.901" timestamp="1586865524943" />
-    <state width="1628" height="283" key="GridCell.Tab.1.right" timestamp="1586865524944">
-      <screen x="67" y="27" width="1651" height="901" />
-    </state>
-    <state width="1628" height="283" key="GridCell.Tab.1.right/67.27.1651.901@67.27.1651.901" timestamp="1586865524944" />
-    <state x="381" y="111" key="SettingsEditor" timestamp="1586865239484">
-      <screen x="67" y="27" width="1651" height="901" />
-    </state>
-    <state x="381" y="111" key="SettingsEditor/67.27.1651.901@67.27.1651.901" timestamp="1586865239484" />
+    <state x="350" y="134" key="#com.intellij.execution.impl.EditConfigurationsDialog" />
+    <state x="350" y="134" key="#com.intellij.execution.impl.EditConfigurationsDialog/67.27.1651.901@67.27.1651.901" />
+    <state x="422" y="53" width="931" height="847" key="CommitChangelistDialog2" />
+    <state x="422" y="53" width="931" height="847" key="CommitChangelistDialog2/67.27.1651.901@67.27.1651.901" />
+    <state x="670" y="234" width="424" height="484" key="FileChooserDialogImpl" />
+    <state x="670" y="234" width="424" height="484" key="FileChooserDialogImpl/67.27.1651.901@67.27.1651.901" />
+    <state width="1628" height="228" key="GridCell.Tab.0.bottom" />
+    <state width="1628" height="228" key="GridCell.Tab.0.bottom/67.27.1651.901@67.27.1651.901" />
+    <state width="1628" height="228" key="GridCell.Tab.0.center" />
+    <state width="1628" height="228" key="GridCell.Tab.0.center/67.27.1651.901@67.27.1651.901" />
+    <state width="1628" height="228" key="GridCell.Tab.0.left" />
+    <state width="1628" height="228" key="GridCell.Tab.0.left/67.27.1651.901@67.27.1651.901" />
+    <state width="1628" height="228" key="GridCell.Tab.0.right" />
+    <state width="1628" height="228" key="GridCell.Tab.0.right/67.27.1651.901@67.27.1651.901" />
+    <state width="1628" height="283" key="GridCell.Tab.1.bottom" />
+    <state width="1628" height="283" key="GridCell.Tab.1.bottom/67.27.1651.901@67.27.1651.901" />
+    <state width="1628" height="283" key="GridCell.Tab.1.center" />
+    <state width="1628" height="283" key="GridCell.Tab.1.center/67.27.1651.901@67.27.1651.901" />
+    <state width="1628" height="283" key="GridCell.Tab.1.left" />
+    <state width="1628" height="283" key="GridCell.Tab.1.left/67.27.1651.901@67.27.1651.901" />
+    <state width="1628" height="283" key="GridCell.Tab.1.right" />
+    <state width="1628" height="283" key="GridCell.Tab.1.right/67.27.1651.901@67.27.1651.901" />
+    <state x="381" y="111" key="SettingsEditor" />
+    <state x="381" y="111" key="SettingsEditor/67.27.1651.901@67.27.1651.901" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/synth_generator.py</url>
-          <line>53</line>
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/synth_generator.py</url>
-          <line>91</line>
+          <line>92</line>
           <option name="timeStamp" value="2" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/synth_generator.py</url>
-          <line>121</line>
+          <line>122</line>
           <option name="timeStamp" value="3" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -145,7 +215,49 @@
           <line>115</line>
           <option name="timeStamp" value="4" />
         </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/main_synth.py</url>
+          <line>92</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/synth_generator.py</url>
+          <line>51</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/synth_generator.py</url>
+          <line>79</line>
+          <option name="timeStamp" value="4" />
+        </line-breakpoint>
       </breakpoints>
+      <option name="time" value="5" />
     </breakpoint-manager>
+  </component>
+  <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/pycococreator/pycococreatortools/pycococreatortools.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="220">
+          <caret line="10" selection-start-line="10" selection-end-line="10" />
+          <folding>
+            <element signature="e#24#33#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/synth_generator.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="322">
+          <caret line="118" column="29" lean-forward="true" selection-start-line="118" selection-start-column="29" selection-end-line="118" selection-end-column="29" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/main_synth.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="587">
+          <caret line="88" column="26" lean-forward="true" selection-start-line="88" selection-start-column="26" selection-end-line="88" selection-end-column="26" />
+        </state>
+      </provider>
+    </entry>
   </component>
 </project>

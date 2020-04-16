@@ -55,8 +55,10 @@ COCO_WEIGHTS_PATH = os.path.join(ALGO_ROOT, "mask_rcnn_coco.h5")
 # through the command line argument --logs
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, "logs")
 
-import PDL1.PDL1NetTrainer.PDL1NetTrainer
-import PDL1.PDL1NetTester.PDL1NetTester
+import algo.PDL1Net.PDL1NetTrainer.PDL1NetTrainer as PDL1NetTrainer
+import algo.PDL1Net.PDL1NetTester.PDL1NetTester as PDL1NetTester
+# import datautils.PDL1Net_DataLoader
+import algo.params.PDL1Net_config.PDL1NetConfig as PDL1NetConfig
 
 ############################################################
 #  Training
