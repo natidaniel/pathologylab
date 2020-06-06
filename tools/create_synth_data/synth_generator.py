@@ -22,6 +22,7 @@ CONST_COLOR_PALETTE = [colorsys.hsv_to_rgb(i / 4, 1.0, 1.0) for i in range(4)]
 for i, color in enumerate(CONST_COLOR_PALETTE):
     CONST_COLOR_PALETTE[i] = tuple([int(color[j] * 255) for j in range(3)])  # convert color to 255 integer dim'
 
+
 class ShapesDataset(utils.Dataset):
     """Generates the shapes synthetic dataset. The dataset consists of simple
     shapes (triangles, squares, circles, ellipse) placed randomly on a cells image(IHC WSI patch) surface.
@@ -202,6 +203,8 @@ class ShapesDataset(utils.Dataset):
             x, y, s = dims
             boxes.append([y - s, x - s, y + s, x + s])
 
-        keep_ixs = utils.non_max_suppression(np.array(boxes), np.arange(N), self.config.OVERLAPING_MAX_IOU)
+        keep_ixs_area = utils.suppress_inclusion(np.array(boxes), np.arange(N))
+        keep_ixs_iou = utils.non_max_suppression(np.array(boxes), np.arange(N), self.config.OVERLAPING_MAX_IOU)
+        keep_ixs = np.intersect1d(keep_ixs_area, keep_ixs_iou)
         shapes = [s for i, s in enumerate(shapes) if i in keep_ixs]
         return shapes

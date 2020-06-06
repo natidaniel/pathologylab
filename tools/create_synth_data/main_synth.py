@@ -76,7 +76,7 @@ def create_dirs(config):
 if __name__ == "__main__":
     config = ShapesConfig()
     create_dirs(config)
-    a=0
+    a = 0
     # create the Dataset
     data = synth_generator.ShapesDataset(config)
     data.load_shapes()
