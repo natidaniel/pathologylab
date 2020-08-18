@@ -1,4 +1,4 @@
-from mrcnn import utils
+from algo.mrcnn import utils
 import os
 import sys
 import json
@@ -13,6 +13,9 @@ import cv2
 ############################################################
 
 class PDL1NetDataset(utils.Dataset):
+    def __init__(self, class_map=None, active_inflammation_tag=False):
+        super().__init__(class_map)
+        self.active_inflammation_tag = active_inflammation_tag
 
     def load_pdl1net_dataset(self, dataset_dir, subset):
         """Load a subset of the PDL1 dataset.
@@ -53,21 +56,24 @@ class PDL1NetDataset(utils.Dataset):
         # TODO: make sure the json has the right name
         # ATTENTION! the parser will work only for via POLYGON segmented regions
         # annotations = json.load(open(os.path.join(dataset_dir, "train_synth_via_json.json")))
-        annotations = json.load(open(os.path.join(dataset_dir, "via_export_json.json")))
+        json_dir = os.path.join(dataset_dir, "via_export_json.json")
+        annotations = json.load(open(json_dir))
         annotations = list(annotations.values())  # don't need the dict keys
 
         # The VIA tool saves images in the JSON even if they don't have any
         # annotations. Skip unannotated images.
         annotations = [a for a in annotations if a['regions']]
-        # type2class = {"1":"inflammation", "2":"negative", "3":"positive", "4":"other"}
-        type2class = {"inf": "inflammation", "neg": "negative", "pos": "positive", "other": "other"}
+        type2class = {"1": "inflammation", "2": "negative", "3": "positive", "4": "other"}  # yael's data
+        # type2class = {"inf": "inflammation", "neg": "negative", "pos": "positive", "other": "other"} #synthetic's data
         # Add images
         for a in annotations:
             # Get the x, y coordinaets of points of the polygons that make up
             # the outline of each object instance. There are stores in the
             # shape_attributes (see json format above)
             polygons = [r['shape_attributes'] for r in a['regions']]
-            classes = [r['region_attributes']['category'] for r in a['regions']]  # validate that a list of classes is obtained
+            # classes = [r['region_attributes']['category'] for r in a['regions']]  # validate that a list of classes is obtained
+            classes = [r['region_attributes']['type'] for r in
+                       a['regions']]  # 'category' for synthetic data,  'type' for yael's data
             classes = [type2class[c] for c in classes]
 
             # load_mask() needs the image size to convert polygons to masks.
@@ -104,12 +110,15 @@ class PDL1NetDataset(utils.Dataset):
         # TODO: make sure no intersection are made between polygons
         for i, p in enumerate(info["polygons"]):
             # Get indexes of pixels inside the polygon and set them to 1
+            if 'all_points_y' not in p.keys() or 'all_points_x' not in p.keys():
+                continue
             if p['all_points_y'] is None or p['all_points_x'] is None:
                 continue
             #  check if an element in the list is also a list
-            if any(isinstance(elem, list) for elem in p['all_points_y']) or any(isinstance(elem, list) for elem in p['all_points_x']):
+            if any(isinstance(elem, list) for elem in p['all_points_y']) or any(
+                    isinstance(elem, list) for elem in p['all_points_x']):
                 continue
-            rr, cc = skimage.draw.polygon(p['all_points_y'], p['all_points_x'])
+            rr, cc = skimage.draw.polygon(p['all_points_y'], p['all_points_x'], (info["height"], info["width"]))
             mask[rr, cc, i] = 1
         # mask_classes = [self.class_name2id[name] for name in self.class_names]
         mask_classes = [self.class_name2id[name] for name in info["classes"]]
@@ -119,9 +128,10 @@ class PDL1NetDataset(utils.Dataset):
         # create united mask for each class
         united_masks = np.zeros([info["height"], info["width"], self.num_classes])
         for i in np.arange(self.num_classes):
-            masks_of_same_class = mask[:, :, mask_classes == (i+1)]
+            masks_of_same_class = mask[:, :, mask_classes == (i + 1)]
             for single_mask_index in np.arange(masks_of_same_class.shape[2]):
-                united_masks[:,:,i] = np.logical_or(united_masks[:,:,i], masks_of_same_class[:,:,single_mask_index])
+                united_masks[:, :, i] = np.logical_or(united_masks[:, :, i],
+                                                      masks_of_same_class[:, :, single_mask_index])
         # clean each mask from intersections with united_masks
         classes_array = np.array([self.class_name2id[name] for name in self.class_names])
         for i in np.arange(mask.shape[2]):
@@ -130,21 +140,18 @@ class PDL1NetDataset(utils.Dataset):
             stronger_classes -= 1  # change from class number to index in united_masks (starts from 0)
             curr_mask = mask[:, :, i]
             for class_index in stronger_classes:
-                curr_mask[np.logical_and(curr_mask, united_masks[:,:,class_index])] = 0
+                curr_mask[np.logical_and(curr_mask, united_masks[:, :, class_index])] = 0
             mask[:, :, i] = curr_mask
+
+        # if the inflammation class is inactive than change it to "other"
+        # to be removed in the next lines
+        if not self.active_inflammation_tag:
+            mask_classes[mask_classes == self.class_name2id["inflammation"]] = self.class_name2id["other"]
         # remove other from masks
         mask = mask[:, :, mask_classes != self.class_name2id["other"]]
         mask_classes = mask_classes[mask_classes != self.class_name2id["other"]]
-
         # Return mask, and array of class IDs of each instance. Since we have
         # one class ID only, we return an array of 1s
-        for i in np.arange(mask.shape[2]):
-            mask_copy = mask.copy()
-            current_mask = mask_copy[:,:,i]
-            current_mask[ current_mask == 1 ] = 255
-            dir_to_save = r'D:\Nati\Itamar_n_Shai\Datasets\DataSynth\occlusion_result'
-            image_path = os.path.join(dir_to_save, str(int(image_id)) + "_" + str(i) + '.png')
-            cv2.imwrite(image_path, current_mask)
 
         return mask, mask_classes
 
@@ -155,3 +162,4 @@ class PDL1NetDataset(utils.Dataset):
             return info["path"]
         else:
             super(self.__class__, self).image_reference(image_id)
+

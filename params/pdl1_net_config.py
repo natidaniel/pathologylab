@@ -1,5 +1,4 @@
-
-from mrcnn.config import Config
+from algo.mrcnn.config import Config
 
 ############################################################
 #  Configurations

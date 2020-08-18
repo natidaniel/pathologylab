@@ -55,10 +55,10 @@ COCO_WEIGHTS_PATH = os.path.join(ALGO_ROOT, "mask_rcnn_coco.h5")
 # through the command line argument --logs
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, "logs")
 
-import algo.PDL1Net.PDL1NetTrainer.PDL1NetTrainer as PDL1NetTrainer
-import algo.PDL1Net.PDL1NetTester.PDL1NetTester as PDL1NetTester
+import algo.PDL1Net.PDL1NetTrainer as PDL1NetTrainer
+import algo.PDL1Net.PDL1NetTester as PDL1NetTester
 # import datautils.PDL1Net_DataLoader
-import algo.params.PDL1Net_config.PDL1NetConfig as PDL1NetConfig
+import params.pdl1_net_config as PDL1NetConfig
 
 ############################################################
 #  Training
@@ -92,11 +92,13 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Validate arguments
-    if args.command == "train":
+    if args.command == "train" or args.command == "test":
         assert args.dataset, "Argument --dataset is required for training"
     elif args.command == "splash":
         assert args.image or args.video,\
                "Provide --image or --video to apply color splash"
+    elif args.command == "splash_mask":
+        assert args.image, "Provide --image to apply splash_mask"
 
     print("Weights: ", args.weights)
     print("Dataset: ", args.dataset)
@@ -104,9 +106,9 @@ if __name__ == '__main__':
 
     # Configurations
     if args.command == "train":
-        config = PDL1NetConfig()
+        config = PDL1NetConfig.PDL1NetConfig()
     else:
-        class InferenceConfig(PDL1NetConfig):
+        class InferenceConfig(PDL1NetConfig.PDL1NetConfig):
             # Set batch size to 1 since we'll be running inference on
             # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
             GPU_COUNT = 1
@@ -151,12 +153,17 @@ if __name__ == '__main__':
 
     # Train or evaluate
     if args.command == "train":
-        Trainer = PDL1NetTrainer(model, args.dataset)
+        Trainer = PDL1NetTrainer(model, config, args)
         Trainer.train()
     elif args.command == "splash":
-        Tester = PDL1NetTester(model)
+        Tester = PDL1NetTester.PDL1NetTester(model, args)
         Tester.detect_and_color_splash(args.image)
-
+    elif args.command == "splash_mask":
+        Tester = PDL1NetTester.PDL1NetTester(model, args)
+        Tester.detect_and_show_mask(image_path=args.image)
+    elif args.command == "test":
+        Tester = PDL1NetTester.PDL1NetTester(model, args)
+        Tester.test_sequence()
     else:
         print("'{}' is not recognized. "
               "Use 'train' or 'splash'".format(args.command))

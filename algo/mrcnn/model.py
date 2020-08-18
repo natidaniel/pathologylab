@@ -79,11 +79,250 @@ def compute_backbone_shapes(config, image_shape):
 
     # Currently supports ResNet only
     assert config.BACKBONE in ["resnet50", "resnet101"]
-    return np.array(
+    shapes = np.array(
         [[int(math.ceil(image_shape[0] / stride)),
             int(math.ceil(image_shape[1] / stride))]
             for stride in config.BACKBONE_STRIDES])
+    # print('=====>>>> shapes = {}'.format(shapes))
+    return shapes
 
+
+############################################################
+#  VGG-16 Graph
+############################################################
+#debug
+
+import warnings
+def _obtain_input_shape(input_shape,
+                        default_size,
+                        min_size,
+                        data_format,
+                        require_flatten,
+                        weights=None):
+    """Internal utility to compute/validate a model's input shape.
+    # Arguments
+        input_shape: Either None (will return the default network input shape),
+            or a user-provided shape to be validated.
+        default_size: Default input width/height for the model.
+        min_size: Minimum input width/height accepted by the model.
+        data_format: Image data format to use.
+        require_flatten: Whether the model is expected to
+            be linked to a classifier via a Flatten layer.
+        weights: One of `None` (random initialization)
+            or 'imagenet' (pre-training on ImageNet).
+            If weights='imagenet' input channels must be equal to 3.
+    # Returns
+        An integer shape tuple (may include None entries).
+    # Raises
+        ValueError: In case of invalid argument values.
+    """
+    if weights != 'imagenet' and input_shape and len(input_shape) == 3:
+        if data_format == 'channels_first':
+            if input_shape[0] not in {1, 3}:
+                warnings.warn(
+                    'This model usually expects 1 or 3 input channels. '
+                    'However, it was passed an input_shape with ' +
+                    str(input_shape[0]) + ' input channels.')
+            default_shape = (input_shape[0], default_size, default_size)
+        else:
+            if input_shape[-1] not in {1, 3}:
+                warnings.warn(
+                    'This model usually expects 1 or 3 input channels. '
+                    'However, it was passed an input_shape with ' +
+                    str(input_shape[-1]) + ' input channels.')
+            default_shape = (default_size, default_size, input_shape[-1])
+    else:
+        if data_format == 'channels_first':
+            default_shape = (3, default_size, default_size)
+        else:
+            default_shape = (default_size, default_size, 3)
+    if weights == 'imagenet' and require_flatten:
+        if input_shape is not None:
+            if input_shape != default_shape:
+                raise ValueError('When setting `include_top=True` '
+                                 'and loading `imagenet` weights, '
+                                 '`input_shape` should be ' +
+                                 str(default_shape) + '.')
+        return default_shape
+    if input_shape:
+        if data_format == 'channels_first':
+            if input_shape is not None:
+                if len(input_shape) != 3:
+                    raise ValueError(
+                        '`input_shape` must be a tuple of three integers.')
+                if input_shape[0] != 3 and weights == 'imagenet':
+                    raise ValueError('The input must have 3 channels; got '
+                                     '`input_shape=' + str(input_shape) + '`')
+                if ((input_shape[1] is not None and input_shape[1] < min_size) or
+                   (input_shape[2] is not None and input_shape[2] < min_size)):
+                    raise ValueError('Input size must be at least ' +
+                                     str(min_size) + 'x' + str(min_size) +
+                                     '; got `input_shape=' +
+                                     str(input_shape) + '`')
+        else:
+            if input_shape is not None:
+                if len(input_shape) != 3:
+                    raise ValueError(
+                        '`input_shape` must be a tuple of three integers.')
+                if input_shape[-1] != 3 and weights == 'imagenet':
+                    raise ValueError('The input must have 3 channels; got '
+                                     '`input_shape=' + str(input_shape) + '`')
+                if ((input_shape[0] is not None and input_shape[0] < min_size) or
+                   (input_shape[1] is not None and input_shape[1] < min_size)):
+                    raise ValueError('Input size must be at least ' +
+                                     str(min_size) + 'x' + str(min_size) +
+                                     '; got `input_shape=' +
+                                     str(input_shape) + '`')
+    else:
+        if require_flatten:
+            input_shape = default_shape
+        else:
+            if data_format == 'channels_first':
+                input_shape = (3, None, None)
+            else:
+                input_shape = (None, None, 3)
+    if require_flatten:
+        if None in input_shape:
+            raise ValueError('If `include_top` is True, '
+                             'you should specify a static `input_shape`. '
+                             'Got `input_shape=' + str(input_shape) + '`')
+    return input_shape
+
+#
+def VGG_16(input_image, architecture, stage5=False, train_bn=True, weights_path=None):
+    #debug
+
+    include_top = True,
+    weights = 'imagenet'
+    input_tensor = None
+    input_shape = None
+    pooling = None
+    classes = 1000
+
+    backend = K
+    layers = KL
+    #backend, layers, models, keras_utils = get_submodules_from_kwargs(kwargs)
+
+    if not (weights in {'imagenet', None} or os.path.exists(weights)):
+        raise ValueError('The `weights` argument should be either '
+                         '`None` (random initialization), `imagenet` '
+                         '(pre-training on ImageNet), '
+                         'or the path to the weights file to be loaded.')
+
+    if weights == 'imagenet' and include_top and classes != 1000:
+        raise ValueError('If using `weights` as `"imagenet"` with `include_top`'
+                         ' as true, `classes` should be 1000')
+    # Determine proper input shape
+    input_shape = _obtain_input_shape(input_shape,
+                                      default_size=224,
+                                      min_size=32,
+                                      data_format=backend.image_data_format(),
+                                      require_flatten=include_top,
+                                      weights=weights)
+
+    if input_tensor is None:
+        img_input = layers.Input(shape=input_shape)
+    else:
+        if not backend.is_keras_tensor(input_tensor):
+            img_input = layers.Input(tensor=input_tensor, shape=input_shape)
+        else:
+            img_input = input_tensor
+
+    #debug-end
+
+
+    # Block 1
+    x = KL.Conv2D(64, (3, 3),
+                      activation='relu',
+                      padding='same',
+                      name='block1_conv1')(input_image)
+    x = KL.Conv2D(64, (3, 3),
+                      activation='relu',
+                      padding='same',
+                      name='block1_conv2')(x)
+    C1 = x = KL.MaxPooling2D((2, 2), strides=(2, 2), name='block1_pool')(x)
+
+    # Block 2
+    x = KL.Conv2D(128, (3, 3),
+                      activation='relu',
+                      padding='same',
+                      name='block2_conv1')(x)
+    x = KL.Conv2D(128, (3, 3),
+                      activation='relu',
+                      padding='same',
+                      name='block2_conv2')(x)
+    C2 = x = KL.MaxPooling2D((2, 2), strides=(2, 2), name='block2_pool')(x)
+
+    # Block 3
+    x = KL.Conv2D(256, (3, 3),
+                      activation='relu',
+                      padding='same',
+                      name='block3_conv1')(x)
+    x = KL.Conv2D(256, (3, 3),
+                      activation='relu',
+                      padding='same',
+                      name='block3_conv2')(x)
+    x = KL.Conv2D(256, (3, 3),
+                      activation='relu',
+                      padding='same',
+                      name='block3_conv3')(x)
+    C3 = x = KL.MaxPooling2D((2, 2), strides=(2, 2), name='block3_pool')(x)
+
+    # Block 4
+    x = KL.Conv2D(512, (3, 3),
+                      activation='relu',
+                      padding='same',
+                      name='block4_conv1')(x)
+    x = KL.Conv2D(512, (3, 3),
+                      activation='relu',
+                      padding='same',
+                      name='block4_conv2')(x)
+    x = KL.Conv2D(512, (3, 3),
+                      activation='relu',
+                      padding='same',
+                      name='block4_conv3')(x)
+    C4 = x = KL.MaxPooling2D((2, 2), strides=(2, 2), name='block4_pool')(x)
+
+    # Block 5
+    x = KL.Conv2D(512, (3, 3),
+                      activation='relu',
+                      padding='same',
+                      name='block5_conv1')(x)
+    x = KL.Conv2D(512, (3, 3),
+                      activation='relu',
+                      padding='same',
+                      name='block5_conv2')(x)
+    x = KL.Conv2D(512, (3, 3),
+                      activation='relu',
+                      padding='same',
+                      name='block5_conv3')(x)
+    C5 = x = KL.MaxPooling2D((2, 2), strides=(2, 2), name='block5_pool')(x)
+
+    return [C1, C2, C3, C4, C5]
+
+
+class VGG16Graph:
+    def __init__(self):
+        pass
+
+    def __call__(self, input_image, stage5=True, train_bn=False):
+        return VGG_16(input_image, stage5, train_bn, weights_path=None)
+
+class VGG16BackboneShape:
+    def __init__(self):
+        # self.strides = [2, 4, 8, 16, 32]
+        self.strides = [4, 8, 16, 32, 64]
+
+    def backbone_shapes(self, image_shape):
+        shapes = np.array(
+            [[int(math.ceil(image_shape[0] / stride)),
+              int(math.ceil(image_shape[1] / stride))]
+             for stride in self.strides])
+        # print('======>>>> shapes = {}'.format(shapes))
+        return shapes
+
+    def __call__(self, image_shape, stage5=True, train_bn=False):
+        return self.backbone_shapes(image_shape)
 
 ############################################################
 #  Resnet Graph
@@ -345,7 +584,7 @@ class PyramidROIAlign(KE.Layer):
     """Implements ROI Pooling on multiple levels of the feature pyramid.
 
     Params:
-    - pool_shape: [pool_height, pool_width] of the output pooled regions. Usually [7, 7]
+    - pool_shape: [pool_height, pool_width] of the output_IoU0_C1_BG1 pooled regions. Usually [7, 7]
 
     Inputs:
     - boxes: [batch, num_boxes, (y1, x1, y2, x2)] in normalized
@@ -500,7 +739,7 @@ def detection_targets_graph(proposals, gt_class_ids, gt_boxes, gt_masks, config)
     class_ids: [TRAIN_ROIS_PER_IMAGE]. Integer class IDs. Zero padded.
     deltas: [TRAIN_ROIS_PER_IMAGE, (dy, dx, log(dh), log(dw))]
     masks: [TRAIN_ROIS_PER_IMAGE, height, width]. Masks cropped to bbox
-           boundaries and resized to neural network output size.
+           boundaries and resized to neural network output_IoU0_C1_BG1 size.
 
     Note: Returned arrays might be zero padded if not enough target ROIs.
     """
@@ -639,7 +878,7 @@ class DetectionTargetLayer(KE.Layer):
     target_deltas: [batch, TRAIN_ROIS_PER_IMAGE, (dy, dx, log(dh), log(dw)]
     target_mask: [batch, TRAIN_ROIS_PER_IMAGE, height, width]
                  Masks cropped to bbox boundaries and resized to neural
-                 network output size.
+                 network output_IoU0_C1_BG1 size.
 
     Note: Returned arrays might be zero padded if not enough target ROIs.
     """
@@ -765,7 +1004,7 @@ def refine_detections_graph(rois, probs, deltas, window, config):
     top_ids = tf.nn.top_k(class_scores_keep, k=num_keep, sorted=True)[1]
     keep = tf.gather(keep, top_ids)
 
-    # Arrange output as [N, (y1, x1, y2, x2, class_id, score)]
+    # Arrange output_IoU0_C1_BG1 as [N, (y1, x1, y2, x2, class_id, score)]
     # Coordinates are normalized.
     detections = tf.concat([
         tf.gather(refined_rois, keep),
@@ -812,7 +1051,7 @@ class DetectionLayer(KE.Layer):
             lambda x, y, w, z: refine_detections_graph(x, y, w, z, self.config),
             self.config.IMAGES_PER_GPU)
 
-        # Reshape output
+        # Reshape output_IoU0_C1_BG1
         # [batch, num_detections, (y1, x1, y2, x2, class_id, class_score)] in
         # normalized coordinates
         return tf.reshape(
@@ -1231,6 +1470,7 @@ def load_image_gt(dataset, config, image_id, augment=False, augmentation=None,
     # This requires the imgaug lib (https://github.com/aleju/imgaug)
     if augmentation:
         import imgaug
+        from imgaug.augmentables.segmaps import SegmentationMapsOnImage
 
         # Augmenters that are safe to apply to masks
         # Some, such as Affine, have settings that make them unsafe, so always
@@ -1246,17 +1486,23 @@ def load_image_gt(dataset, config, image_id, augment=False, augmentation=None,
         # Store shapes before augmentation to compare
         image_shape = image.shape
         mask_shape = mask.shape
+        # image, mask = augmentation(image=image, segmentation_maps=mask)
         # Make augmenters deterministic to apply similarly to images and masks
         det = augmentation.to_deterministic()
         image = det.augment_image(image)
         # Change mask to np.uint8 because imgaug doesn't support np.bool
-        mask = det.augment_image(mask.astype(np.uint8),
-                                 hooks=imgaug.HooksImages(activator=hook))
+        # augMasks = [SegmentationMapOnImage(mask[:,:,i], shape=image_shape) for i in np.arange(mask.shape[2])]
+        for mask_num in range(mask.shape[2]):
+            augMasks = SegmentationMapsOnImage(mask[:,:,mask_num], shape=image_shape)
+            augMasks = det.augment_segmentation_maps(augMasks)#, hooks=imgaug.HooksImages(activator=hook))
+            # augMasks = [s.get_arr() for s in augMasks]
+            mask[:,:,mask_num] = augMasks.get_arr().astype(np.bool)
+        # mask = det.augment_image(mask.astype(np.uint8), hooks=imgaug.HooksImages(activator=hook))
         # Verify that shapes didn't change
         assert image.shape == image_shape, "Augmentation shouldn't change image size"
         assert mask.shape == mask_shape, "Augmentation shouldn't change mask size"
         # Change mask back to bool
-        mask = mask.astype(np.bool)
+        # mask = mask.astype(np.bool)
 
     # Note that some boxes might be all zeros if the corresponding mask got cropped out.
     # and here is to filter them out
@@ -1304,7 +1550,7 @@ def build_detection_targets(rpn_rois, gt_class_ids, gt_boxes, gt_masks, config):
     bboxes: [TRAIN_ROIS_PER_IMAGE, NUM_CLASSES, (y, x, log(h), log(w))]. Class-specific
             bbox refinements.
     masks: [TRAIN_ROIS_PER_IMAGE, height, width, NUM_CLASSES). Class specific masks cropped
-           to bbox boundaries and resized to neural network output size.
+           to bbox boundaries and resized to neural network output_IoU0_C1_BG1 size.
     """
     assert rpn_rois.shape[0] > 0
     assert gt_class_ids.dtype == np.int32, "Expected int but got {}".format(
@@ -1792,7 +2038,7 @@ def data_generator(dataset, config, shuffle=True, augment=False, augmentation=No
                     inputs.extend([batch_rpn_rois])
                     if detection_targets:
                         inputs.extend([batch_rois])
-                        # Keras requires that output and targets have the same number of dimensions
+                        # Keras requires that output_IoU0_C1_BG1 and targets have the same number of dimensions
                         batch_mrcnn_class_ids = np.expand_dims(
                             batch_mrcnn_class_ids, -1)
                         outputs.extend(
@@ -1899,6 +2145,7 @@ class MaskRCNN():
         else:
             _, C2, C3, C4, C5 = resnet_graph(input_image, config.BACKBONE,
                                              stage5=True, train_bn=config.TRAIN_BN)
+        # print('======>>>> image_data_format={}'.format(K.image_data_format()))
         # Top-down Layers
         # TODO: add assert to varify feature map sizes match what's in config
         P5 = KL.Conv2D(config.TOP_DOWN_PYRAMID_SIZE, (1, 1), name='fpn_c5p5')(C5)
@@ -2038,7 +2285,7 @@ class MaskRCNN():
                                      fc_layers_size=config.FPN_CLASSIF_FC_LAYERS_SIZE)
 
             # Detections
-            # output is [batch, num_detections, (y1, x1, y2, x2, class_id, score)] in
+            # output_IoU0_C1_BG1 is [batch, num_detections, (y1, x1, y2, x2, class_id, score)] in
             # normalized coordinates
             detections = DetectionLayer(config, name="mrcnn_detection")(
                 [rpn_rois, mrcnn_class, mrcnn_bbox, input_image_meta])
@@ -2417,7 +2664,7 @@ class MaskRCNN():
     def unmold_detections(self, detections, mrcnn_mask, original_image_shape,
                           image_shape, window):
         """Reformats the detections of one image from the format of the neural
-        network output to a format suitable for use in the rest of the
+        network output_IoU0_C1_BG1 to a format suitable for use in the rest of the
         application.
 
         detections: [N, (y1, x1, y2, x2, class_id, score)] in normalized coordinates
@@ -2443,6 +2690,7 @@ class MaskRCNN():
         class_ids = detections[:N, 4].astype(np.int32)
         scores = detections[:N, 5]
         masks = mrcnn_mask[np.arange(N), :, :, class_ids]
+        all_masks = mrcnn_mask[np.arange(N), :, :, :]
 
         # Translate normalized coordinates in the resized image to pixel
         # coordinates in the original image before resizing
@@ -2477,7 +2725,22 @@ class MaskRCNN():
         full_masks = np.stack(full_masks, axis=-1)\
             if full_masks else np.empty(original_image_shape[:2] + (0,))
 
-        return boxes, class_ids, scores, full_masks
+        full_all_masks = []
+        for i in range(N):
+            all_masks_classes = []
+            # Convert neural network mask to full size mask
+            for j in range(all_masks.shape[3]):
+                is_BK = False if j > 0 else True
+                all_masks_classes += [utils.resize_mask_pred(all_masks[i,:,:,j], boxes[i], original_image_shape, is_BK)]
+            # combine all classes into one mask with multiple channels
+            all_masks_classes = np.stack(all_masks_classes, axis=-1)
+            # normlize each pixel s.t it represents probability (e.g sums to 1)
+            all_masks_classes = all_masks_classes / np.expand_dims(np.sum(all_masks_classes, axis=-1), axis=2)
+            full_all_masks.append(all_masks_classes)
+
+        full_all_masks = np.stack(full_all_masks, axis=-1)\
+            if full_all_masks else np.empty(original_image_shape[:2] + (0,))
+        return boxes, class_ids, scores, full_masks, full_all_masks
 
     def detect(self, images, verbose=0):
         """Runs the detection pipeline.
@@ -2491,8 +2754,7 @@ class MaskRCNN():
         masks: [H, W, N] instance binary masks
         """
         assert self.mode == "inference", "Create model in inference mode."
-        assert len(
-            images) == self.config.BATCH_SIZE, "len(images) must be equal to BATCH_SIZE"
+        assert len(images) == self.config.BATCH_SIZE, "len(images) must be equal to BATCH_SIZE"
 
         if verbose:
             log("Processing {} images".format(len(images)))
@@ -2520,12 +2782,12 @@ class MaskRCNN():
             log("image_metas", image_metas)
             log("anchors", anchors)
         # Run object detection
-        detections, _, _, mrcnn_mask, _, _, _ =\
-            self.keras_model.predict([molded_images, image_metas, anchors], verbose=0)
+        Y_pred = self.keras_model.predict([molded_images, image_metas, anchors], verbose=0)
+        detections, _, _, mrcnn_mask, _, _, _ = Y_pred
         # Process detections
         results = []
         for i, image in enumerate(images):
-            final_rois, final_class_ids, final_scores, final_masks =\
+            final_rois, final_class_ids, final_scores, final_masks, masks_pred =\
                 self.unmold_detections(detections[i], mrcnn_mask[i],
                                        image.shape, molded_images[i].shape,
                                        windows[i])
@@ -2534,6 +2796,7 @@ class MaskRCNN():
                 "class_ids": final_class_ids,
                 "scores": final_scores,
                 "masks": final_masks,
+                "masks_pred": masks_pred
             })
         return results
 
@@ -2583,7 +2846,7 @@ class MaskRCNN():
         results = []
         for i, image in enumerate(molded_images):
             window = [0, 0, image.shape[0], image.shape[1]]
-            final_rois, final_class_ids, final_scores, final_masks =\
+            final_rois, final_class_ids, final_scores, final_masks, _=\
                 self.unmold_detections(detections[i], mrcnn_mask[i],
                                        image.shape, molded_images[i].shape,
                                        window)
