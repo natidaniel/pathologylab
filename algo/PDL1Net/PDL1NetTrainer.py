@@ -1,6 +1,5 @@
 from imgaug import augmenters as iaa
 from datautils import pdl1_net_data_loader as loaderlib
-import PIL
 
 
 class PDL1NetTrainer:
@@ -56,13 +55,13 @@ class PDL1NetTrainer:
         ], random_order=True) # apply augmenters in random order
         return seq
 
-    def train(self, augment=None):
+    def train(self, augment=False):
         # *** This training schedule is an example. Update to your needs ***
         # Since we're using a very small dataset, and starting from
         # COCO trained weights, we don't need to train too long. Also,
         # no need to train all layers, just the heads should do it.
         print("Training network heads")
-        if augment is not None:
+        if augment:
             augmenter = PDL1NetTrainer.augmenter()
         else:
             augmenter = None

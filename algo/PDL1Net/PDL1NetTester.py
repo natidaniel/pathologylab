@@ -57,7 +57,7 @@ class PDL1NetTester:
         # Detect objects
         r = self.model.detect([image], verbose=1)[0]
         # Color splash
-        vis_pdl1.imshow_mask(image, r['masks'], r['class_ids'], savename=f"splash_{os.path.split(self.args.image)[1]}")
+        vis_pdl1.imshow_mask(image, r['masks'], r['class_ids'], savename="splash_{}".format(os.path.split(self.args.image)[1]))
         # Save output_IoU0_C1_BG1
         # file_name = "splash_{:%Y%m%dT%H%M%S}.png".format(datetime.datetime.now())
         # skimage.io.imsave(file_name, splash)
@@ -118,7 +118,7 @@ class PDL1NetTester:
                                        image_id, use_mini_mask=False)
 
             # plot the backbone activation layer as performed on the current image
-            vis_pdl1.inspect_backbone_activation(self.model, image, savename=f"{image_id}_backbone")
+            vis_pdl1.inspect_backbone_activation(self.model, image, savename="{}_backbone".format(image_id))
             plt.close('all')
 
             # Run object detection
@@ -126,8 +126,8 @@ class PDL1NetTester:
             r = results[0]
 
             if show_image is True and image_id % sample == 0:
-                vis_pdl1.imshow_mask(image, r['masks'], r['class_ids'], savename=f"{image_id}", saveoriginal=True)
-                vis_pdl1.imshow_mask(image, gt_masks, gt_class_ids, savename=f"{image_id}_gt")
+                vis_pdl1.imshow_mask(image, r['masks'], r['class_ids'], savename="{}".format(image_id), saveoriginal=True)
+                vis_pdl1.imshow_mask(image, gt_masks, gt_class_ids, savename="{}_gt".format(image_id))
 
             gt_match, pred_match, overlaps = utils.compute_matches(gt_bboxes, gt_class_ids, gt_masks,
                                                                    r["rois"], r["class_ids"], r["scores"], r['masks'],
@@ -168,9 +168,9 @@ class PDL1NetTester:
                     continue
                 IoUs[i] = np.array(IoUs[i])
                 mean_IoUs_per_seg[i] = np.mean(IoUs[i])
-            file.write(f'accuracy:\n{score_accuracy}\n')
-            file.write(f"IoU over segments is \n{mean_IoUs_per_seg}\n")
-            file.write(f"IoU over images is \n{mean_IoU_per_image_per_class}\n")
+            file.write('accuracy:\n{}\n'.format(score_accuracy))
+            file.write("IoU over segments is \n{}\n".format(mean_IoUs_per_seg))
+            file.write("IoU over images is \n{}\n".format(mean_IoU_per_image_per_class))
 
             file.write("the confusion matrix is:\n {}\n".format(confusstion_matrix))
 

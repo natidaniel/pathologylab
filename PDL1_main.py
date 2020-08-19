@@ -89,6 +89,8 @@ if __name__ == '__main__':
     parser.add_argument('--video', required=False,
                         metavar="path or URL to video",
                         help='Video to apply the color splash effect on')
+    parser.add_argument('--augment', required=False, action="store_true",
+                        help='if the flag is used then train will run with augmenter')
     args = parser.parse_args()
 
     # Validate arguments
@@ -153,8 +155,8 @@ if __name__ == '__main__':
 
     # Train or evaluate
     if args.command == "train":
-        Trainer = PDL1NetTrainer(model, config, args)
-        Trainer.train()
+        Trainer = PDL1NetTrainer.PDL1NetTrainer(model, config, args)
+        Trainer.train(augment=args.augment)
     elif args.command == "splash":
         Tester = PDL1NetTester.PDL1NetTester(model, args)
         Tester.detect_and_color_splash(args.image)
