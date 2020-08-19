@@ -7,6 +7,12 @@ for easy orientation in this github please take a look in the following explanat
 
 ## Data
 The net uses Whole Slide Images (WSI) IHC tainted. The patch size for the training step was **SIZE** and it was curated by pathologist.
+### Data for train
+The following arguments will start a train session:
+> PDL1_main.py train --dataset <path_to_dataset> --weights <see explanation below> [options]
+The train stage expects json file as it produced by VIA tool (Oxford annotation tool) placed in the folder with the annotated images.
+
+
 ## Usage
 Here add a description to make the code work. and include the code line to make it run.
 ## Configuration file
