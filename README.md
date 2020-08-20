@@ -4,7 +4,18 @@ this platform was created to provide a general and simple framework for patholog
 Our net (PDL1Net) deals with segmantation and counting of PDL1Net cells in WSIs of lung cancer patients, but can use for other implementations as well.
 for easy orientation in this github please take a look in the following explanation about the building blocks.
 ## Setup
-
+In order to run PDL1_main.py few requirements are needed. The code ran and been tested on python 3.5, and used TF 1.11.0
+and keras 2.1.5. For your convenient a requirement.txt file containing all the modules in our environment can be found under
+the project main folder. Use the next command to install all the modules to your python environment:
+```commandline
+pip install -r requirements.txt
+``` 
+Important notes:
+* The environment to run the project was carefully  obtained, using a lot of time on trial and error. It is highly unstable
+and every minor change can break it.
+* As a result we highly recommend you to start a clean environment and install only the `requirements.txt` file from the main
+folder.
+ 
 ## Data
 The net uses Whole Slide Images (WSI) IHC tainted. The patch size for the training step was **SIZE** and it was curated by pathologist.
 ### Data for Sessions
@@ -24,13 +35,12 @@ Both train session and test session expects the next folder structure:
      | via_export_json.json
 
 ```
-The json file has to contain only `polygon` types and not other variates(like `point` or `triangle` etc.).
+The code expects the json file in `val` and `train` to be formatted as json file exported by "VIA tool".
+The json file has to contain only `polygon` types and not other variates (like `point` or `triangle` etc.).
 `PDL1NetDataLoader` the class responsible to load the data reads the json file and loads only images that has non-trivial 
 annotations. It expects to find the json file contains the annotation for the images in the folder.
-
-> PDL1_main.py train --dataset <path_to_dataset> --weights <see explanation below> [options]
-The train stage expects json file as it produced by VIA tool (Oxford annotation tool) placed in the folder with the annotated images.
-
+The labels has priority order to insure that when collision is made, the higher priority label will prevail.
+Priority is determine by the index position in the class list, the higher the index, the higher the priority.
 
 ## Usage
 To initiate a train session use the next command in the command line:
