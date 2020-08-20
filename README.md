@@ -7,14 +7,41 @@ for easy orientation in this github please take a look in the following explanat
 
 ## Data
 The net uses Whole Slide Images (WSI) IHC tainted. The patch size for the training step was **SIZE** and it was curated by pathologist.
-### Data for train
-The following arguments will start a train session:
+### Data for Sessions
+Both train session and test session expects the next folder structure:
+```
+<root-folder>
+└-- val
+|    | <image 1>
+|    |     :
+|    | <image n>
+|    | via_export_json.json
+|
+└-- train
+     | <image 1>
+     |     :
+     | <image m>
+     | via_export_json.json
+
+```
+The json file has to contain only `polygon` types and not other variates(like `point` or `triangle` etc.).
+`PDL1NetDataLoader` the class responsible to load the data reads the json file and loads only images that has non-trivial 
+annotations. It expects to find the json file contains the annotation for the images in the folder.
+
 > PDL1_main.py train --dataset <path_to_dataset> --weights <see explanation below> [options]
 The train stage expects json file as it produced by VIA tool (Oxford annotation tool) placed in the folder with the annotated images.
 
 
 ## Usage
-Here add a description to make the code work. and include the code line to make it run.
+To initiate a train session use the next command in the command line:
+```commandline
+PDL1_main.py train --datatset path\to\root\folder --weights path\to\weight\file [optinal --augment]
+```
+To initiate a test session use the next command in the command line:
+```commandline
+PDL1_main.py test --datatset path\to\root\folder --weights path\to\weight\file
+```
+
 ## Configuration file
 how to use the configuration file
 ## Design

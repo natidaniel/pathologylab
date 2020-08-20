@@ -58,7 +58,7 @@ DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, "logs")
 import algo.PDL1Net.PDL1NetTrainer as PDL1NetTrainer
 import algo.PDL1Net.PDL1NetTester as PDL1NetTester
 # import datautils.PDL1Net_DataLoader
-import params.pdl1_net_config as PDL1NetConfig
+import params.PDL1NetConfig as PDL1NetConfig
 
 ############################################################
 #  Training

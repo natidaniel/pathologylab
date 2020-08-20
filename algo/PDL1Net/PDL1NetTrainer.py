@@ -1,5 +1,5 @@
 from imgaug import augmenters as iaa
-from datautils import pdl1_net_data_loader as loaderlib
+from datautils import PDL1NetDataLoader as loaderlib
 
 
 class PDL1NetTrainer:

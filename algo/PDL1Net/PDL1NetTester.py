@@ -8,8 +8,8 @@ a = os.getcwd()
 import algo.mrcnn.visualize_pdl1 as vis_pdl1
 import algo.mrcnn.utils as utils
 import algo.mrcnn.model as modellib
-from datautils.pdl1_net_data_loader import PDL1NetDataset
-import params.pdl1_net_config as config
+from datautils.PDL1NetDataLoader import PDL1NetDataset
+import params.PDL1NetConfig as config
 import math
 
 class PDL1NetTester:
