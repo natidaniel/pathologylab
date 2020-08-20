@@ -51,7 +51,16 @@ To initiate a test session use the next command in the command line:
 ```commandline
 PDL1_main.py test --datatset path\to\root\folder --weights path\to\weight\file
 ```
-
+**The Flags in Details:**
+* *train* \ *test* - choose the session type to start
+* *--datatset* path to the dataset folder that holds `val` & `train` subfolders. 
+For more details on the data look at **Data for Sessions** 
+* *--weights* few options are available:
+    * "coco" - loads a weights that were trained on the coco data set
+    * "last" - loads the last `.h5` file from the `logs` folder
+    * exact path to `.h5` file that holds the weights
+* *--augment* (optional) if this flag is being used the model will augment the 
+data using various transformations (only available on train sessions).
 ## Configuration file
 how to use the configuration file
 ## Design
