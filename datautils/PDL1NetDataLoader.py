@@ -92,8 +92,9 @@ class PDL1NetDataset(utils.Dataset):
                 classes=classes)
 
     def load_mask(self, image_id):
-        """Generate instance masks for an image.
-       Returns:
+        """
+        Generate instance masks for an image.
+        Returns:
         masks: A bool array of shape [height, width, instance count] with
             one mask per instance.
         class_ids: a 1D array of class IDs of the instance masks.

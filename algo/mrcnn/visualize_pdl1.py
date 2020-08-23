@@ -8,7 +8,6 @@ import os
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import datetime
-
 import mrcnn.visualize as vis
 
 
@@ -141,103 +140,6 @@ def plot_confusion_matrix(confusion_matrix, class_names, threshold=0.5, savename
     # plt.show()
     return fig
 
-
-def acumulate_confussion_matrix_multiple_thresh(matrices, threshs, num_classes, gt_class_ids, pred_class_ids, pred_scores,
-                  overlaps, class_names):
-    for i, thresh in enumerate(threshs):
-        matrices[i,:,:] += get_confusion_matrix(num_classes, gt_class_ids, pred_class_ids, pred_scores,
-                  overlaps, class_names, threshold=thresh)
-    return matrices, threshs
-
-import matplotlib.pyplot as plt
-from sklearn.metrics import balanced_accuracy_score, roc_curve
-def plot_roc_curve(list_gt_masks, list_pred_masks, matched_classes):
-    """
-
-    N = len(list_gt_masks) - number of images
-    Mi = number of segments in the i'th image
-    M = for i in [1...N] M += Mi
-    :param list_gt_masks: list of ground truth masks each of shape [Height, Width, Mi]
-    :param list_pred_masks: list of predicted masks each of shape [Height, Width, Mi]
-    :param matched_classes: the element i is the class of the i'th masks
-    :return:
-    """
-    gt_masks = np.concatenate(list_gt_masks, axis=2)
-    gt_masks = np.transpose(gt_masks, (2, 0, 1))
-    pred_masks = np.transpose(np.concatenate(list_pred_masks, axis=3), (3, 0, 1, 2))
-    matched_classes = np.concatenate(matched_classes)
-    num_classes = 5#np.max(matched_classes) + 1
-
-    array_shape = tuple(list(gt_masks.shape) + [num_classes])
-    masks = np.zeros(array_shape, dtype=np.bool)
-
-    # gt_masks make into shape [M, height, width, classes]
-    for i in np.arange(num_classes):
-        masks[matched_classes == i, :, :, i] = True
-    gt_masks = masks * np.expand_dims(gt_masks, axis=-1)
-    gt_masks = gt_masks.astype(np.bool)
-    # pred_masks = masks * np.expand_dims(pred_masks, axis=3)
-    # pred_masks = pred_masks.astype(np.bool)
-    segs = gt_masks
-    p = pred_masks
-
-    plt.figure(figsize=(10, 10))
-    for i in range(p.shape[-1]):
-        fpr, tpr, _ = roc_curve(segs[:, :, :, i].ravel(), p[:, :, :, i].ravel())
-
-        _p = np.round(p[:, :, :, i].ravel()).astype(np.int32)
-        bas = balanced_accuracy_score(segs[:, :, :, i].ravel(), _p)
-
-        plt.subplot(4, 4, i + 1)
-        plt.plot(fpr, tpr)
-        plt.title("Class " + str(i))
-        plt.xlabel("False positive rate")
-        plt.ylabel("True positive rate")
-
-    plt.tight_layout()
-    plt.show()
-
-
-def collect_roc_data(list_gt_masks, list_pred_masks, matched_classes):
-    """
-
-    N = len(list_gt_masks) - number of images
-    Mi = number of segments in the i'th image
-    M = for i in [1...N] M += Mi
-    :param list_gt_masks: list of ground truth masks each of shape [Height, Width, Mi]
-    :param list_pred_masks: list of predicted masks each of shape [Height, Width, Mi]
-    :param matched_classes: the element i is the class of the i'th masks
-    :return:
-    """
-    gt_masks = np.concatenate(list_gt_masks, axis=2)
-    gt_masks = np.transpose(gt_masks, (2, 0, 1))
-    pred_masks = np.transpose(np.concatenate(list_pred_masks, axis=3), (3, 0, 1, 2))
-    matched_classes = np.concatenate(matched_classes)
-    num_classes = 5#np.max(matched_classes) + 1
-
-    array_shape = tuple(list(gt_masks.shape) + [num_classes])
-    masks = np.zeros(array_shape, dtype=np.bool)
-
-    # gt_masks make into shape [M, height, width, classes]
-    for i in np.arange(num_classes):
-        masks[matched_classes == i, :, :, i] = True
-    gt_masks = masks * np.expand_dims(gt_masks, axis=-1)
-    gt_masks = gt_masks.astype(np.bool)
-    # pred_masks = masks * np.expand_dims(pred_masks, axis=3)
-    # pred_masks = pred_masks.astype(np.bool)
-    segs = gt_masks
-    p = pred_masks
-
-    fpr_list = []
-    tpr_list = []
-    for i in range(p.shape[-1]):
-        fpr, tpr, _ = roc_curve(segs[:, :, :, i].ravel(), p[:, :, :, i].ravel())
-        fpr_list += [fpr]
-        tpr_list += [tpr]
-
-    fpr = np.stack(fpr_list, axis=-1)
-    tpr = np.stack(tpr_list, axis=-1)
-    return fpr, tpr
 
 def get_IoU_from_matches(match_pred2gt, matched_classes, ovelaps):
     """
