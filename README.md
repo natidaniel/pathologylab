@@ -67,7 +67,18 @@ the backbone of the network, number of iteration per epoch, etc.
 The right way to use the configuration is to create a class of your own, that derives `Config` class
 (found in `algo\mrcnn\config`). In the new class, change only the parameter that you want to change,
 the parameter you don't overload will be derived from the `Config` class. 
-## Design
+## Synthetic Data Generator Tool
+A way to evaluate the goodness of the network without the limitations from small segmented dataset
+is to use synthetic data. The script `tools\create_synth_data\main_synth.py` is used to create
+synthetic data with 4 or less classes.  
+The script produces `.json` file in COCO format. This format can then be loaded to `VIA tool` and exported
+to `.json`, that way the file will be in the format the `PDL1NetDataLoader` expects. 
+The configuration class in `main_synth.py` controls all the input and output parameters:
+the input folder path, the output folder path, the classes labels, number of images to generate,
+and also shapes color and background images etc.  
+This tool can run only in **linux** because it needs `cococreatortool` module, that currently
+ supports only linux. To create the environment for the Synthetic Generator you can use `requirements_synth_generetor.txt`
+ file with `pip install -r` as seen in the *Setup* section.
 
 ## License
 Copyright 2020 Nati Daniel & Itamar Gruber & Shai Nahum Gefen

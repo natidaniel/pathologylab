@@ -57,7 +57,7 @@ class PDL1NetTester:
         # Detect objects
         r = self.model.detect([image], verbose=1)[0]
         # Color splash
-        vis_pdl1.imshow_mask(image, r['masks'], r['class_ids'], savename="splash_{}".format(os.path.split(self.args.image)[1]))
+        vis_pdl1.imwrite_mask(image, r['masks'], r['class_ids'], savename="splash_{}".format(os.path.split(self.args.image)[1]))
         # Save output_IoU0_C1_BG1
         # file_name = "splash_{:%Y%m%dT%H%M%S}.png".format(datetime.datetime.now())
         # skimage.io.imsave(file_name, splash)
@@ -82,7 +82,7 @@ class PDL1NetTester:
         skimage.io.imsave(file_name, splash)
         print("Saved to ", file_name)
 
-    def test_sequence(self, show_image=True, sample=1):
+    def test_sequence(self, show_image=True, sample=1, result_dir_name=None):
         """
         Tests the model on the test dataset
         calculate and plots the Confusion matrix
@@ -91,6 +91,16 @@ class PDL1NetTester:
         :param sample: the frequency of images to show ( 1 each image, 2 every second image, etc. )
         saves the data into output folder
         """
+
+        if result_dir_name is not None:
+            if os.path.exists(vis_pdl1.result_dir):
+                # os.remove(vis_pdl1.result_dir)
+                pass
+            path, dir_name = os.path.split(vis_pdl1.result_dir)
+            new_path = os.path.join(path, result_dir_name)
+            if not os.path.exists(new_path):
+                os.makedirs(new_path)
+            vis_pdl1.result_dir = new_path
 
         # configure the Config Object given to the model
         class InferenceConfig(config.PDL1NetConfig):
@@ -103,7 +113,10 @@ class PDL1NetTester:
         dataset_val.prepare()
 
         print("start test")
-        inference_config = InferenceConfig()
+        if hasattr(self.args, "config"):
+            inference_config = self.args.config
+        else:
+            inference_config = InferenceConfig()
         matched_classes = []
         confusstion_matrix = np.zeros((dataset_val.num_classes, dataset_val.num_classes))
 
@@ -118,7 +131,11 @@ class PDL1NetTester:
                                        image_id, use_mini_mask=False)
 
             # plot the backbone activation layer as performed on the current image
-            vis_pdl1.inspect_backbone_activation(self.model, image, savename="{}_backbone".format(image_id))
+            if hasattr(self.args, "backbone"):
+                vis_pdl1.inspect_backbone_activation(self.model, image,
+                                                     savename="{}_backbone".format(image_id), args=self.args)
+            else:
+                vis_pdl1.inspect_backbone_activation(self.model, image, savename="{}_backbone".format(image_id))
             plt.close('all')
 
             # Run object detection
@@ -126,8 +143,8 @@ class PDL1NetTester:
             r = results[0]
 
             if show_image is True and image_id % sample == 0:
-                vis_pdl1.imshow_mask(image, r['masks'], r['class_ids'], savename="{}".format(image_id), saveoriginal=True)
-                vis_pdl1.imshow_mask(image, gt_masks, gt_class_ids, savename="{}_gt".format(image_id))
+                vis_pdl1.imwrite_mask(image, r['masks'], r['class_ids'], savename="{}".format(image_id), saveoriginal=True)
+                vis_pdl1.imwrite_mask(image, gt_masks, gt_class_ids, savename="{}_gt".format(image_id))
 
             gt_match, pred_match, overlaps = utils.compute_matches(gt_bboxes, gt_class_ids, gt_masks,
                                                                    r["rois"], r["class_ids"], r["scores"], r['masks'],

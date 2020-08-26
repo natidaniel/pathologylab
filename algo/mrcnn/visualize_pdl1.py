@@ -2,13 +2,13 @@
 import math
 import numpy as np
 import mrcnn.utils as utils
-import matplotlib as mpl
-from matplotlib import cm
 import os
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import datetime
 import mrcnn.visualize as vis
+from cv2 import imwrite, cvtColor, COLOR_GRAY2RGB, COLOR_BGR2RGB, resize
+import cv2
 
 
 result_dir = os.path.join("output", "out_{:%Y%m%dT%H%M%S}".format(datetime.datetime.now()))
@@ -199,11 +199,31 @@ def score_almost_metric(gt_masks, gt_classes, pred_masks, pred_classes):
         diff = score_pred - score_gt
     return diff
 
-import datetime
+def remove_black_frame(image):
+    if len(image.shape) > 2:
+        image_gray = cvtColor(image, cv2.COLOR_RGB2GRAY)
+    else:
+        image_gray = image
+    _, mask = cv2.threshold(image_gray, 1.0, 255.0, cv2.THRESH_BINARY)
 
-def imshow_mask(image, masks, classes, remove_inflamation=False, savename=None, saveoriginal=False):
+    # findContours destroys input
+    _, contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # sort contours by largest first (if there are more than one)
+    contours = sorted(contours, key=lambda contour: len(contour), reverse=True)
+    roi = cv2.boundingRect(contours[0])
+
+    # use the roi to select into the original 'stitched' image
+    if len(image.shape) > 2:
+        return image[roi[1]:roi[3], roi[0]:roi[2], :]
+    else:
+        return image[roi[1]:roi[3], roi[0]:roi[2]]
+
+
+def imwrite_mask(image, masks, classes, remove_inflamation=False, savename=None, saveoriginal=False):
+    if len(image.shape) < 3:
+        image = cvtColor(image, COLOR_GRAY2RGB)
     if any(classes):  # if classes in not empty list
-        mask = np.zeros_like(masks[:,:,0], dtype=np.uint8)
         if remove_inflamation:
             inflamation_num = 1
             classes[classes == inflamation_num] = 0
@@ -212,43 +232,23 @@ def imshow_mask(image, masks, classes, remove_inflamation=False, savename=None, 
         #     mask[masks[:, :, i] is True] = (masks[:, :, i] * classes[i])[masks[:,:,i] is True]
         masks = masks * classes
         mask = np.max(masks, axis=2)
-        cmap = cm.rainbow
-        norm = mpl.colors.Normalize(np.amin(mask), np.amax(mask))
-
-        fig, ax = plt.subplots()
-        ax.imshow(image)
-        ax.imshow(mask, norm=norm, cmap=cmap, alpha=0.2)
-        plt.tick_params(
-            axis='both',  # changes apply to the x-axis
-            which='both',  # both major and minor ticks are affected
-            bottom=False,  # ticks along the bottom edge are off
-            top=False,  # ticks along the top edge are off
-            left=False,
-            right=False,
-            labelleft=False,
-            labelbottom=False)  # labels along the bottom edge are off
-        # file_name = "splash_{:%Y%m%dT%H%M%S}.png".format(datetime.datetime.now())
+        class_to_color = {1: (0, 1., 0), 2: (1., 0, 0), 3: (0, 0, 1.)}
+        edited_image = image.copy()
+        for class_ in np.unique(classes.ravel()):
+            edited_image = vis.apply_mask(edited_image, mask, class_to_color[class_], label=class_, alpha=0.5)
+        edited_image = remove_black_frame(edited_image)
         if savename is not None:
             file_name = os.path.join(result_dir, "mask_"+savename+".png")
-            plt.savefig(file_name)
-        plt.close(fig)
-    # plt.show()
+            edited_image = resize(edited_image, masks.shape[:2])
+            edited_image = cvtColor(edited_image, COLOR_BGR2RGB)
+            imwrite(file_name, edited_image)
     if saveoriginal:
-        fig, ax = plt.subplots()
-        ax.imshow(image)
-        plt.tick_params(
-            axis='both',  # changes apply to the x-axis
-            which='both',  # both major and minor ticks are affected
-            bottom=False,  # ticks along the bottom edge are off
-            top=False,  # ticks along the top edge are off
-            left=False,
-            right=False,
-            labelleft=False,
-            labelbottom=False)  # labels along the bottom edge are off
         if savename is not None:
             file_name = os.path.join(result_dir, "org_" + savename + ".png")
-            plt.savefig(file_name)
-        plt.close(fig)
+            image_org = remove_black_frame(image)
+            image_org = resize(image_org, masks.shape[:2])
+            image_org = cvtColor(image_org, COLOR_BGR2RGB)
+            imwrite(file_name, image_org)
 
 
 
@@ -262,15 +262,40 @@ def plot_hist(data, savename=None):
     # plt.show()
 
 
-def inspect_backbone_activation(model, image, savename=None):
-    activations = model.run_graph([image], [
-        ("input_image", tf.identity(model.keras_model.get_layer("input_image").output)),
-        ("res2c_out", model.keras_model.get_layer("res2c_out").output),
-        ("res3c_out", model.keras_model.get_layer("res3c_out").output),
-        # ("res4w_out", model.keras_model.get_layer("res4w_out").output),  # for resnet100
-        ("rpn_bbox", model.keras_model.get_layer("rpn_bbox").output),
-        ("roi", model.keras_model.get_layer("ROI").output),
-    ])
+def inspect_backbone_activation(model, image, savename=None, args=None):
+    if args is not None:
+        if args.backbone.lower() == "resnet50":
+            activation_resnet50 = [
+                ("input_image", tf.identity(model.keras_model.get_layer("input_image").output)),
+                ("res2c_out", model.keras_model.get_layer("res2c_out").output),
+                ("res3c_out", model.keras_model.get_layer("res3c_out").output),
+                # ("res4w_out", model.keras_model.get_layer("res4w_out").output),  # for resnet100
+                ("rpn_bbox", model.keras_model.get_layer("rpn_bbox").output),
+                ("roi", model.keras_model.get_layer("ROI").output),
+            ]
+            activations = model.run_graph([image], activation_resnet50)
+        elif args.backbone.lower() == "resnet101":
+            activation_resnet101 = [
+                ("input_image", tf.identity(model.keras_model.get_layer("input_image").output)),
+                ("res2c_out", model.keras_model.get_layer("res2c_out").output),
+                ("res3c_out", model.keras_model.get_layer("res3c_out").output),
+                ("res4w_out", model.keras_model.get_layer("res4w_out").output),  # for resnet100
+                ("rpn_bbox", model.keras_model.get_layer("rpn_bbox").output),
+                ("roi", model.keras_model.get_layer("ROI").output),
+            ]
+            activations = model.run_graph([image], activation_resnet101)
+        else:
+            raise(NotImplemented, "{} is not implemented for inspect_backbone_activation".format(args.backbone))
+    else:
+        activation_resnet50 = [
+            ("input_image", tf.identity(model.keras_model.get_layer("input_image").output)),
+            ("res2c_out", model.keras_model.get_layer("res2c_out").output),
+            ("res3c_out", model.keras_model.get_layer("res3c_out").output),
+            # ("res4w_out", model.keras_model.get_layer("res4w_out").output),  # for resnet100
+            ("rpn_bbox", model.keras_model.get_layer("rpn_bbox").output),
+            ("roi", model.keras_model.get_layer("ROI").output),
+        ]
+        activations = model.run_graph([image], activation_resnet50)
     if savename is not None:
         savename = os.path.join(result_dir, savename + ".png")
     vis.display_images(np.transpose(activations["res2c_out"][0, :, :, :4], [2, 0, 1]),

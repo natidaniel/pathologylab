@@ -136,9 +136,6 @@ if __name__ == '__main__':
     elif args.weights.lower() == "last":
         # Find last trained weights
         weights_path = model.find_last()
-    elif args.weights.lower() == "imagenet":
-        # Start from ImageNet trained weights
-        weights_path = model.get_imagenet_weights()
     else:
         weights_path = args.weights
 
