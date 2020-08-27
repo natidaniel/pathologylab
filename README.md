@@ -1,8 +1,8 @@
 # PathologyLab
 ## Description
-this platform was created to provide a general and simple framework for pathological uses.
+This platform was created to provide a general and simple framework for pathological uses.
 Our net (PDL1Net) deals with segmantation and counting of PD-L1 cells in WSIs of lung cancer patients, but can use for other implementations as well.
-for easy orientation in this github please take a look at the following explanation about the building blocks.
+For easy orientation in this github please take a look at the following explanation about the building blocks.
 ## Setup
 In order to run PDL1_main.py few requirements are needed. The code ran and been tested on python 3.5, and used TF 1.11.0
 and keras 2.1.5. For your convenient a requirement.txt file containing all the modules in our environment can be found under
@@ -62,6 +62,12 @@ For more details on the data look at **Data for Sessions**
     * exact path to `.h5` file that holds the weights
 * *--augment* (optional) if this flag is being used the model will augment the 
 data using various transformations (only available on train sessions).
+
+**Example on Savir-Lab computer:** 
+```commandline
+PDL1_main.py test --dataset D:\Nati\Itamar_n_Shai\Datasets\data_yael\DataMaskRCNN --weights D:\Nati\Itamar_n_Shai\Mask_RCNN\logs\101_augm0\mask_rcnn_pdl1_0090.h5 
+```
+
 ## Configuration
 The configuration is a class that controls the meta parameters of the model - for example, the number of classes,
 the backbone of the network, number of iteration per epoch, etc.
@@ -77,7 +83,7 @@ to `.json`, that way the file will be in the format the `PDL1NetDataLoader` expe
 The configuration class in `main_synth.py` controls all the input and output parameters:
 the input folder path, the output folder path, the classes labels, number of images to generate,
 and also shapes color and background images etc.  
-This tool can run only in **linux** because it needs `cococreatortool` module, that currently
+This tool can run only on **linux** because it needs `cococreatortool` module, that currently
  supports only linux. To create the environment for the Synthetic Generator you can use `requirements_synth_generetor.txt`
  file with `pip install -r` as seen in the *Setup* section.
 

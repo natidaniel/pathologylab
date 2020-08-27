@@ -336,5 +336,8 @@ def inspect_backbone_activation(model, image, savename=None, args=None):
         activations = model.run_graph([image], activation_resnet50)
     if savename is not None:
         savename = os.path.join(result_dir, savename + ".png")
-    vis.display_images(np.transpose(activations["res2c_out"][0, :, :, :4], [2, 0, 1]),
+    try:
+        vis.display_images(np.transpose(activations["res2c_out"][0, :, :, :4], [2, 0, 1]),
                        cols=4, out_path=savename, show=False)
+    except ...:
+        pass

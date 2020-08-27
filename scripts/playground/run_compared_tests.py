@@ -64,8 +64,8 @@ if __name__ == "__main__":
             if weight is None:
                 raise(ValueError, "weight epoch {} was not found in {}".format(epoch, log_path))
             args = Arguments(weight, backbone, dataset)
-            p = multiprocessing.Process(target=run_test, args=(args,))
-            p.start()
-            p.join()
-            # run_test(args)
+            # p = multiprocessing.Process(target=run_test, args=(args,))
+            # p.start()
+            # p.join()
+            run_test(args)
     pass

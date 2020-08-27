@@ -17,12 +17,13 @@ class PDL1NetConfig(Config):
     IMAGES_PER_GPU = 1
 
     # Number of classes (including background)
-    NUM_CLASSES = 1 + 4  # Background + baloon
+    NUM_CLASSES = 1 + 4  # Background + [inf, pos, ned, other]
 
     # Number of training steps per epoch
     STEPS_PER_EPOCH = 100
 
-    # Skip detections with < 90% confidence
+    # Minimum probability value to accept a detected instance
+    # ROIs below this threshold are skipped
     DETECTION_MIN_CONFIDENCE = 0.9
 
     BACKBONE = "resnet50"
