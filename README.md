@@ -17,7 +17,8 @@ and every minor change can break it.
 folder.
  
 ## Data
-The net uses Whole Slide Images (WSI) IHC stained. The patch size for the training step was **SIZE** and it was curated by pathologist.
+Creation of the data: For training and evaluation, our network's inputs are segmented patches of about 800×800 pixels
+from IHC slides. Due to our corporation with RAMBAM hospital, the raw data was given as real patients' scans.
 ### Data for Sessions
 Both train session and test session expect the next folder structure:
 ```
