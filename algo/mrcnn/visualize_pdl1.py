@@ -170,10 +170,11 @@ def get_IoU_from_matches(match_pred2gt, matched_classes, ovelaps):
 
 def score_area(masks_positive, masks_negative):
     """
-
-    :param masks_positive: ndarray [NxHxW] N number of positive segments
-    :param masks_negative: ndarray [NxHxW] N number of negative segments
-    :return:
+    calculate the area of the pdl1 positive out of all the cancerous cells,
+    score = num` pixels pdl1 *pos* / (num` pixels pdl1 *pos* + num` pixels pdl1 *neg*)
+    :param masks_positive: ndarray [N, H, W] N number of positive segments
+    :param masks_negative: ndarray [M, H, W] M number of negative segments
+    :return: score = num` pixels pdl1 *pos* / (num` pixels pdl1 *pos* + num` pixels pdl1 *neg*)
     """
     positive_area = np.sum((masks_positive > 0).ravel())
     negative_area = np.sum((masks_negative > 0).ravel())
@@ -183,6 +184,15 @@ def score_area(masks_positive, masks_negative):
     return score
 
 def score_almost_metric(gt_masks, gt_classes, pred_masks, pred_classes):
+    """
+    Calculate the score of the ground-truth image and the prediction image using `score_area` function.
+    The function then compute the difference between their scores and returns it.
+    :param gt_masks: masks as resulted from model.load_image_gt function
+    :param gt_classes: classes as resulted from model.load_image_gt function
+    :param pred_masks: masks as resulted from PDL1NetTester.test function
+    :param pred_classes: classes as resulted from PDL1NetTester.test function
+    :return: difference between ground-truth score and prediction score
+    """
     gt_positive_masks = gt_masks[..., gt_classes == 3]
     gt_negative_masks = gt_masks[..., gt_classes == 2]
     score_gt = score_area(gt_positive_masks, gt_negative_masks)
@@ -200,6 +210,12 @@ def score_almost_metric(gt_masks, gt_classes, pred_masks, pred_classes):
     return diff
 
 def remove_black_frame(image):
+    """
+    crops black boundaries from the image if there are any
+    using the smallest BBox that contains all the none black pixels
+    :param image: the image to remove the boundaries from
+    :return: cropped image
+    """
     if len(image.shape) > 2:
         image_gray = cvtColor(image, cv2.COLOR_RGB2GRAY)
     else:
@@ -220,7 +236,16 @@ def remove_black_frame(image):
         return image[roi[1]:roi[3], roi[0]:roi[2]]
 
 
-def imwrite_mask(image, masks, classes, remove_inflamation=False, savename=None, saveoriginal=False):
+def imwrite_mask(image, masks, classes, savename, remove_inflamation=False,  saveoriginal=False):
+    """
+    saves an image with colored segments s.t blue is pdl1+ red is pdl1- and green is inflammation.
+    :param image: the image to be colored
+    :param masks: masks as resulted from PDL1NetTester.test function
+    :param classes: classes as resulted from PDL1NetTester.test function
+    :param savename: save the image in the output folder using the given savename str as file name
+    :param remove_inflamation: if true do not color inflammation segments.
+    :param saveoriginal: if True save also the image itself unmodified to the output folder
+    """
     if len(image.shape) < 3:
         image = cvtColor(image, COLOR_GRAY2RGB)
     if any(classes):  # if classes in not empty list
@@ -253,6 +278,11 @@ def imwrite_mask(image, masks, classes, remove_inflamation=False, savename=None,
 
 
 def plot_hist(data, savename=None):
+    """
+    plot the data using histogram plot
+    :param data: the data to be plotted
+    :param savename: if not None saves the figure to the output folder with the given name
+    """
     fig, axe = plt.subplots()
     axe.hist(data)
     if savename is not None:
@@ -263,6 +293,14 @@ def plot_hist(data, savename=None):
 
 
 def inspect_backbone_activation(model, image, savename=None, args=None):
+    """
+    insert the image through the model pipe and insect (using plt.imshow) its plot after each layer
+    TODO: add a variable to choose the layer to inspect from
+    :param model: the MRCNN model
+    :param image: the image to inspect
+    :param savename: if None does nothing, else save the image to the output folder with the given name
+    :param args: if None does nothing, else expect object with 'backbone' attribute to choose the right pipe to follow
+    """
     if args is not None:
         if args.backbone.lower() == "resnet50":
             activation_resnet50 = [
