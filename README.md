@@ -67,6 +67,9 @@ data using various transformations (only available on train sessions).
 ```commandline
 PDL1_main.py test --dataset D:\Nati\Itamar_n_Shai\Datasets\data_yael\DataMaskRCNN --weights D:\Nati\Itamar_n_Shai\Mask_RCNN\logs\101_augm0\mask_rcnn_pdl1_0090.h5 
 ```
+```commandline
+PDL1_main.py train --dataset D:\Nati\Itamar_n_Shai\Datasets\data_yael\DataMaskRCNN --weights coco --augment
+```
 
 ## Configuration
 The configuration is a class that controls the meta parameters of the model - for example, the number of classes,
