@@ -40,11 +40,11 @@ class PDL1NetTrainer:
         # channel. This can change the color (not only brightness) of the
         # pixels.
         iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05*255), per_channel=0.5),
-        # Make some images brighter and some darker.
-        # In 20% of all cases, we sample the multiplier once per channel,
-        # which can end up changing the color of the images.
-        iaa.Multiply((0.8, 1.2), per_channel=0.2),
-        # Apply affine transformations to each image.
+        # # Make some images brighter and some darker.
+        # # In 20% of all cases, we sample the multiplier once per channel,
+        # # which can end up changing the color of the images.
+        # # iaa.Multiply((0.8, 1.2), per_channel=0.2),
+        # Apply affine t# ransformations to each image.
         # Scale/zoom them, translate/move them, rotate them and shear them.
         iaa.Affine(
             scale={"x": (0.8, 1.2), "y": (0.8, 1.2)},
