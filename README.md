@@ -18,7 +18,7 @@ folder.
  
 ## Data
 Creation of the data: For training and evaluation, our network's inputs are segmented patches of about 800×800 pixels
-from IHC slides. Due to our corporation with RAMBAM hospital, the raw data was given as real patients' scans.
+from IHC slides. Due to our cooperation with RAMBAM hospital, the raw data was given as real patients' scans.
 ### Data for Sessions
 Both train session and test session expect the next folder structure:
 ```
@@ -36,11 +36,11 @@ Both train session and test session expect the next folder structure:
      | via_export_json.json
 
 ```
-The code expects the json file in `val` and `train` to be formatted as json file exported by "VIA tool".
-The json file has to contain only `polygon` region shapes and not other variates (like `point` or `triangle` etc.).
+The code expects the json files in `val` and `train` to be formatted the way "VIA tool" exports json.
+Each json file has to contain only `polygon` region shapes and not other variates (like `point` or `triangle` etc.).
 `PDL1NetDataLoader` the class responsible to load the data that reads the json file and loads only images that has non-trivial 
 annotations. It expects to find the json file contains the annotation for the images in the folder.
-The labels has priority order to insure that when collision is made, the higher priority label will prevail.
+The labels have priority-order to insure that when collision is made, the higher priority label will prevail.
 Priority is determine by the index position in the class list, the higher the index, the higher the priority.
 
 ## Usage
@@ -67,10 +67,13 @@ data using various transformations (only available on train sessions).
 ```commandline
 PDL1_main.py test --dataset D:\Nati\Itamar_n_Shai\Datasets\data_yael\DataMaskRCNN --weights D:\Nati\Itamar_n_Shai\Mask_RCNN\logs\101_augm0\mask_rcnn_pdl1_0090.h5 
 ```
+```commandline
+PDL1_main.py train --dataset D:\Nati\Itamar_n_Shai\Datasets\data_yael\DataMaskRCNN --weights coco --augment
+```
 
 ## Configuration
 The configuration is a class that controls the meta parameters of the model - for example, the number of classes,
-the backbone of the network, number of iteration per epoch, etc.
+the backbone of the network, number of iterations per epoch, etc.
 The right way to use the configuration is to create a class of your own, that derives `Config` class
 (found in `algo\mrcnn\config`). In the new class, change only the parameter that you want to change,
 the parameter you don't overload will be derived from the `Config` class. 
@@ -79,11 +82,11 @@ A way to evaluate the goodness of the network without the limitations from small
 is to use synthetic data. The script `tools\create_synth_data\main_synth.py` is used to create
 synthetic data with 4 or less classes.  
 The script produces `.json` file in COCO format. This format can then be loaded to `VIA tool` and exported
-to `.json`, that way the file will be in the format the `PDL1NetDataLoader` expects. 
+to `.json`, that way the file will be in the format that `PDL1NetDataLoader` expects. 
 The configuration class in `main_synth.py` controls all the input and output parameters:
-the input folder path, the output folder path, the classes labels, number of images to generate,
-and also shapes color and background images etc.  
-This tool can run only on **linux** because it needs `cococreatortool` module, that currently
+input folder path, output folder path, classes labels, number of images to generate,
+and also shapes' color, background images etc.  
+This tool can run only on **linux** because it needs `pycococreator` module, that currently
  supports only linux. To create the environment for the Synthetic Generator you can use `requirements_synth_generetor.txt`
  file with `pip install -r` as seen in the *Setup* section.
 
