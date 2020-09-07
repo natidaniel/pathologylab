@@ -68,5 +68,5 @@ class PDL1NetTrainer:
         self.model.train(self.dataset_train, self.dataset_val,
                 learning_rate=self.config.LEARNING_RATE,
                 augmentation=augmenter,
-                epochs=10,
+                epochs=90,
                 layers='heads')

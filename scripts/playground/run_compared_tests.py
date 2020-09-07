@@ -41,8 +41,8 @@ class Arguments:
 
 if __name__ == "__main__":
 
-    weights_root = r"D:\Nati\Itamar_n_Shai\Mask_RCNN\logs"
-    logs_name = ["101_augm1", "101_augm0", "50_augm1", "50_augm0"]
+    weights_root = r"D:\Nati\Itamar_n_Shai\pathologylab\logs"
+    logs_name = ["50_augm1_07"]
     logs = [os.path.join(weights_root, name) for name in logs_name]
 
     dataset = r"D:\Nati\Itamar_n_Shai\Datasets\data_yael\DataMaskRCNN"
@@ -64,8 +64,8 @@ if __name__ == "__main__":
             if weight is None:
                 raise(ValueError, "weight epoch {} was not found in {}".format(epoch, log_path))
             args = Arguments(weight, backbone, dataset)
-            # p = multiprocessing.Process(target=run_test, args=(args,))
-            # p.start()
-            # p.join()
-            run_test(args)
+            p = multiprocessing.Process(target=run_test, args=(args,))
+            p.start()
+            p.join()
+            # run_test(args)
     pass

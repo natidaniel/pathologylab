@@ -20,11 +20,11 @@ class PDL1NetConfig(Config):
     NUM_CLASSES = 1 + 4  # Background + [inf, pos, ned, other]
 
     # Number of training steps per epoch
-    STEPS_PER_EPOCH = 100
+    STEPS_PER_EPOCH = 40
 
     # Minimum probability value to accept a detected instance
     # ROIs below this threshold are skipped
-    DETECTION_MIN_CONFIDENCE = 0.9
+    DETECTION_MIN_CONFIDENCE = 0.7
 
     BACKBONE = "resnet50"
 

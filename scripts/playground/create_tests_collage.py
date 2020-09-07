@@ -7,20 +7,23 @@ import cv2
 if __name__ == "__main__":
 
     dirs = [
-        '.\\output\\101_augm0_0030',
-        '.\\output\\101_augm0_0060',
-        '.\\output\\101_augm0_0090',
-        '.\\output\\101_augm1_0030',
-        '.\\output\\101_augm1_0060',
-        '.\\output\\101_augm1_0090',
-        '.\\output\\50_augm0_0030',
-        '.\\output\\50_augm0_0060',
-        '.\\output\\50_augm0_0090',
-        '.\\output\\50_augm1_0030',
-        '.\\output\\50_augm1_0060',
-        '.\\output\\50_augm1_0090'
+        # '.\\output\\101_augm0_0030',
+        # '.\\output\\101_augm0_0060',
+        # '.\\output\\101_augm0_0090',
+        # '.\\output\\101_augm1_0030',
+        # '.\\output\\101_augm1_0060',
+        # '.\\output\\101_augm1_0090',
+        # '.\\output\\50_augm0_0030',
+        # '.\\output\\50_augm0_0060',
+        # '.\\output\\50_augm0_0090',
+        # '.\\output\\50_augm1_0030',
+        # '.\\output\\50_augm1_0060',
+        # '.\\output\\50_augm1_0090'
+        '.\\output\\50_augm1_07_0030',
+        '.\\output\\50_augm1_07_0060',
+        '.\\output\\50_augm1_07_0090'
     ]
-    dirs_lst = [dirs[:3], dirs[3:6], dirs[6:9], dirs[9:12]]
+    dirs_lst = [dirs]#[dirs[:3], dirs[3:6], dirs[6:9], dirs[9:12]]
 
     for dirs_paths in dirs_lst:
         fig, axis = plt.subplots(3, 2*4, figsize=(48, 18))
