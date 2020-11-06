@@ -1,17 +1,10 @@
 # PathologyLab
+# November 2020 - The active and more updated branch is "rearrange", see you there
 ## Description
 this platform was created to provide a general and simple framework for pathological uses.
 Our net (PDL1Net) deals with segmantation and counting of PDL1Net cells in WSIs of lung cancer patients, but can use for other implementations as well.
 for easy orientation in this github please take a look in the following explanation about the building blocks.
-## Setup
-
-## Data
-The net uses Whole Slide Images (WSI) IHC tainted. The patch size for the training step was **SIZE** and it was curated by pathologist.
-## Usage
-Here add a description to make the code work. and include the code line to make it run.
-## Configuration file
-how to use the configuration file
-## Design
+## 
 ## License
 Copyright 2020 Nati Daniel & Itamar Gruber & Shai Nahum Gefen
 
