@@ -21,6 +21,7 @@ import skimage.transform
 import urllib.request
 import shutil
 import warnings
+import copy
 from distutils.version import LooseVersion
 
 # URL from which to download the latest COCO trained weights
@@ -735,6 +736,20 @@ def compute_matches(gt_boxes, gt_class_ids, gt_masks,
     return gt_match, pred_match, overlaps
 
 
+def rgb2gray(rgb):
+    return np.dot(rgb[...,:3], [0.2989, 0.5870, 0.1140])
+
+
+def clean_air(img, img_masks):
+    gray = copy.deepcopy(img)
+    gray = (1/256) * rgb2gray(gray)
+    msk = gray < 0.95  # mask for not air
+    filtered_masks = np.empty(img_masks.shape)
+    for i in range(img_masks.shape[-1]):
+        filtered_masks[:, :, i] = np.logical_and(msk, img_masks[:, :, i])
+    return filtered_masks
+
+
 def compute_detection_accuracy(gt_class_ids, gt_masks,
                                pred_class_ids, pred_scores, pred_masks,
                                threshold=0):
@@ -769,6 +784,8 @@ def compute_regulated_overlap(pred_mask, gt_mask, lamda=1):
     intersections_area = np.sum(intersections)
     false_positive_area = np.sum(false_positive)
     gt_area = np.sum(gt_mask)
+    if gt_area + lamda * false_positive_area == 0:
+        return 1, gt_area  # in case in both gt and prediction all image is other
     return (intersections_area / (gt_area + lamda * false_positive_area)), gt_area
 
 

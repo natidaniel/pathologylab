@@ -104,6 +104,43 @@ def get_confusion_matrix(num_classes, gt_class_ids, pred_class_ids, pred_scores,
 
     return confusion_matrix
 
+
+def get_class_mask(target_class_id, masks_lists, class_ids):
+    """
+    return the mask of specific class for the whole image from the list of all the
+    roi masks
+    :param target_class_id: the id of the class to compute the while mask for
+    :param masks_lists: the list of all the masks to compute the image masks from
+    :param class_ids: the class id for each roi in the masks list
+    :return: mask (binary image) of the given class
+    """
+    mask = np.zeros((1024, 1024), dtype=bool)
+    for ind, class_id in enumerate(class_ids):
+        if class_id == target_class_id:
+            mask = np.logical_or(mask, masks_lists[:, :, ind])
+    return mask
+
+
+def get_confusion_matrix_pixel_level(gt_masks, pred_masks, gt_class_ids, pred_class_ids):
+    pdl_positive_mask_gt = get_class_mask(3, gt_masks, gt_class_ids)
+    pdl_negative_mask_gt = get_class_mask(2, gt_masks, gt_class_ids)
+    pdl_positive_mask_pred = get_class_mask(3, pred_masks, pred_class_ids)
+    pdl_negative_mask_pred = get_class_mask(2, pred_masks, pred_class_ids)
+    other_mask_gt = np.logical_not(np.logical_or(pdl_positive_mask_gt, pdl_negative_mask_gt))
+    other_mask_pred = np.logical_not(np.logical_or(pdl_positive_mask_pred, pdl_negative_mask_pred))
+    # order in matrix: other, negative, positive
+    confusion_matrix = np.zeros((3, 3))
+    gt = [other_mask_gt, pdl_negative_mask_gt, pdl_positive_mask_gt]
+    pred = [other_mask_pred, pdl_negative_mask_pred, pdl_positive_mask_pred]
+    gt_areas = np.zeros(3)
+    for i, gt_mask in enumerate(gt):
+        gt_areas[i] = np.sum(gt_mask)
+        for j, pred_mask in enumerate(pred):
+            confusion_matrix[j, i] = np.sum(np.logical_and(gt_mask, pred_mask))
+
+    return confusion_matrix, gt_areas
+
+
 def plot_confusion_matrix(confusion_matrix, class_names, threshold=0.5, savename=None):
     """Draw a grid showing how ground truth objects are classified.
     gt_class_ids: [N] int. Ground truth class IDs
@@ -270,6 +307,13 @@ def imwrite_mask(image, masks, classes, savename, remove_inflamation=False,  sav
             edited_image = resize(edited_image, masks.shape[:2])
             edited_image = cvtColor(edited_image, COLOR_BGR2RGB)
             imwrite(file_name, edited_image)
+    else:
+        if savename is not None:
+            file_name = os.path.join(result_dir, "mask_"+savename+".png")
+            image_org = remove_black_frame(image)
+            image_org = resize(image_org, masks.shape[:2])
+            image_org = cvtColor(image_org, COLOR_BGR2RGB)
+            imwrite(file_name, image_org)
     if saveoriginal:
         if savename is not None:
             file_name = os.path.join(result_dir, "org_" + savename + ".png")
@@ -285,6 +329,20 @@ def imwrite_boxes(image, boxes, masks, class_ids, class_names,
     if savename is not None:
         file_name = os.path.join(result_dir, "box_" + savename + ".png")
         fig.savefig(file_name)
+
+def imwrite_class(image, masks, classes, target_class, savename):
+    mask = get_class_mask(target_class, masks, classes)
+    class_mask = np.zeros((mask.shape[0], mask.shape[1], 3))
+    for i in range(3):
+        class_mask[...,i] = mask
+    edited_image = image.copy()
+    if savename is not None:
+        file_name = os.path.join(result_dir, "class_" + savename + ".png")
+        # edited_image = remove_black_frame(edited_image)
+        edited_image = resize(edited_image, masks.shape[:2])
+        edited_image = cvtColor(edited_image, COLOR_BGR2RGB)
+        edited_image = edited_image * class_mask
+        imwrite(file_name, edited_image)
 
 def plot_hist(data, savename=None):
     """

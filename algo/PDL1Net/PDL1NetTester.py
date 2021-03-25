@@ -127,16 +127,28 @@ class PDL1NetTester:
 
         if result_dir_name is None:
             confusstion_matrix = np.zeros((dataset_val.num_classes, dataset_val.num_classes))
+            confusion_matrix_by_pixel = np.zeros((3, 3))
+            confusion_matrix_by_pixel_air_filt = np.zeros((3, 3))
+            gt_areas = [0, 0, 0]
+            gt_areas_air_filt = [0, 0, 0]
             score_accuracy = []
             IoUs, IoU_classes = ([[] for _ in range(5)], [])
             accuracy_per_image = {}
             gt_area_per_image = {}
+            accuracy_per_image_air_filt = {}
+            gt_area_per_image_air_filt = {}
             evaluated_images = []
         else:
             evaluated_images = metric_data["evaluated_images"]
             accuracy_per_image = metric_data["accuracy_per_image"]
             gt_area_per_image = metric_data["gt_area_per_image"]
+            accuracy_per_image_air_filt = metric_data["accuracy_per_image_air_filt"]
+            gt_area_per_image_air_filt = metric_data["gt_area_per_image_air_filt"]
             confusstion_matrix = metric_data["confusstion_matrix"]
+            confusion_matrix_by_pixel = metric_data["confusion_matrix_by_pixel"]
+            confusion_matrix_by_pixel_air_filt = metric_data["confusion_matrix_by_pixel_air_filt"]
+            gt_areas = metric_data["gt_areas"]
+            gt_areas_air_filt = metric_data["gt_areas_air_filt"]
             score_accuracy = metric_data["score_accuracy"]
             IoU_classes = metric_data["IoU_classes"]
             IoUs = metric_data["IoUs"]
@@ -153,28 +165,39 @@ class PDL1NetTester:
             print(dataset_val.image_info[image_id]["id"])
 
             # plot the backbone activation layer as performed on the current image
-            if hasattr(self.args, "backbone"):
-                vis_pdl1.inspect_backbone_activation(self.model, image,
-                                                     savename="{}_backbone".format(dataset_val.image_info[image_id]["id"]), args=self.args)
-            else:
-                vis_pdl1.inspect_backbone_activation(self.model, image,
-                                                     savename="{}_backbone".format(dataset_val.image_info[image_id]["id"]))
+            # if hasattr(self.args, "backbone"):
+            #     vis_pdl1.inspect_backbone_activation(self.model, image,
+            #                                          savename="{}_backbone".format(dataset_val.image_info[image_id]["id"]), args=self.args)
+            # else:
+            #     vis_pdl1.inspect_backbone_activation(self.model, image,
+            #                                          savename="{}_backbone".format(dataset_val.image_info[image_id]["id"]))
             plt.close('all')
 
             # Run object detection
             results = self.model.detect([image], verbose=0)
             r = results[0]
+            pred_masks_air_filt = utils.clean_air(image, r['masks'])
+            gt_masks_air_filt = utils.clean_air(image, gt_masks)
 
             if show_image is True and image_id % sample == 0:
-                print("saving gt")
-                vis_pdl1.imwrite_mask(image, r['masks'], r['class_ids'],
-                                      savename="{}".format(dataset_val.image_info[image_id]["id"]), saveoriginal=False)
-                print("saving prediction")
-                vis_pdl1.imwrite_mask(image, gt_masks, gt_class_ids,
-                                      savename="{}_gt".format(dataset_val.image_info[image_id]["id"]))
-                print("saving rois boxes")
+                # save prediction images
+                # vis_pdl1.imwrite_mask(image, r['masks'], r['class_ids'],
+                #                       savename="{}".format(dataset_val.image_info[image_id]["id"]), saveoriginal=False)
+                vis_pdl1.imwrite_mask(image, pred_masks_air_filt, r['class_ids'],
+                                      savename="{}_air_filt".format(dataset_val.image_info[image_id]["id"]), saveoriginal=False)
+                # save ground truth images
+                # vis_pdl1.imwrite_mask(image, gt_masks, gt_class_ids,
+                #                       savename="{}_gt".format(dataset_val.image_info[image_id]["id"]))
+                vis_pdl1.imwrite_mask(image, gt_masks_air_filt, gt_class_ids,
+                                      savename="{}_gt_air_filt".format(dataset_val.image_info[image_id]["id"]))
+                # print("saving rois boxes")
                 vis_pdl1.imwrite_boxes(image, r['rois'], r['masks'], r['class_ids'], dataset_val.class_names,
                                        r['scores'], savename="{}".format(dataset_val.image_info[image_id]["id"]))
+                # save image of the gt of each class separately
+                # vis_pdl1.imwrite_class(image, gt_masks, gt_class_ids, 2,
+                #                        savename="{}_negative".format(dataset_val.image_info[image_id]["id"]))
+                # vis_pdl1.imwrite_class(image, gt_masks, gt_class_ids, 3,
+                #                        savename="{}_positive".format(dataset_val.image_info[image_id]["id"]))
 
             gt_match, pred_match, overlaps = utils.compute_matches(gt_bboxes, gt_class_ids, gt_masks,
                                                                    r["rois"], r["class_ids"], r["scores"], r['masks'],
@@ -186,6 +209,12 @@ class PDL1NetTester:
             accuracy_per_image[dataset_val.image_info[image_id]["id"]] = img_accuracy
             gt_area_per_image[dataset_val.image_info[image_id]["id"]] = img_gt_area
 
+            img_accuracy_air_filt, img_gt_area_air_filt = \
+                utils.compute_detection_accuracy(gt_class_ids, gt_masks_air_filt, r["class_ids"], r["scores"],
+                                                 pred_masks_air_filt, threshold=0)
+            accuracy_per_image_air_filt[dataset_val.image_info[image_id]["id"]] = img_accuracy_air_filt
+            gt_area_per_image_air_filt[dataset_val.image_info[image_id]["id"]] = img_gt_area_air_filt
+
             # calculates the IoU over the images and segments
             IoUs_image, IoU_classes_image = vis_pdl1.get_IoU_from_matches(pred_match, r["class_ids"], overlaps)
             for i in range(len(IoUs_image)):
@@ -194,6 +223,15 @@ class PDL1NetTester:
 
             confusstion_matrix += vis_pdl1.get_confusion_matrix(4, gt_class_ids, r["class_ids"], r["scores"],
                                                                       overlaps, [], threshold=0.5)
+            confusion_matrix_by_pixel_temp, gt_areas_temp = \
+                vis_pdl1.get_confusion_matrix_pixel_level(gt_masks, r['masks'], gt_class_ids, r['class_ids'])
+            confusion_matrix_by_pixel_air_filt_temp, gt_areas_air_filt_temp = \
+                vis_pdl1.get_confusion_matrix_pixel_level(gt_masks_air_filt, pred_masks_air_filt, gt_class_ids,
+                                                          r['class_ids'])
+            confusion_matrix_by_pixel += confusion_matrix_by_pixel_temp
+            confusion_matrix_by_pixel_air_filt += confusion_matrix_by_pixel_air_filt_temp
+            gt_areas += gt_areas_temp
+            gt_areas_air_filt += gt_areas_air_filt_temp
 
             #  obtain all the elemnts in pred which have corresponding GT elemnt
             pred_match_exist = pred_match > -1
@@ -208,7 +246,13 @@ class PDL1NetTester:
             metric_data["evaluated_images"] = evaluated_images
             metric_data["accuracy_per_image"] = accuracy_per_image
             metric_data["gt_area_per_image"] = gt_area_per_image
+            metric_data["accuracy_per_image_air_filt"] = accuracy_per_image_air_filt
+            metric_data["gt_area_per_image_air_filt"] = gt_area_per_image_air_filt
             metric_data["confusstion_matrix"] = confusstion_matrix
+            metric_data["confusion_matrix_by_pixel"] = confusion_matrix_by_pixel
+            metric_data["confusion_matrix_by_pixel_air_filt"] = confusion_matrix_by_pixel_air_filt
+            metric_data["gt_areas"] = gt_areas
+            metric_data["gt_areas_air_filt"] = gt_areas_air_filt
             metric_data["score_accuracy"] = score_accuracy
             metric_data["IoU_classes"] = IoU_classes
             metric_data["IoUs"] = IoUs
@@ -237,17 +281,29 @@ class PDL1NetTester:
             file.write("IoU over images is \n{}\n".format(mean_IoU_per_image_per_class))
 
             file.write("the confusion matrix is:\n {}\n".format(confusstion_matrix))
+            file.write("the confusion matrix by pixel is:\n {}\n".format(confusion_matrix_by_pixel))
+            file.write("the confusion matrix by pixel air filtered is:\n {}\n".format(confusion_matrix_by_pixel_air_filt))
 
             file.write("\ncustom accuracy data:\n")
             custom_accuracy = 0
             total_gt_area = 0
+            custom_accuracy_air_filt = 0
+            total_gt_area_air_filt = 0
             for key in accuracy_per_image.keys():
                 custom_accuracy += accuracy_per_image[key] * gt_area_per_image[key]
                 total_gt_area += gt_area_per_image[key]
                 file.write("custom accuracy for image {} is {} with gt area {}:\n".format(key, accuracy_per_image[key],
-                                                                                          gt_area_per_image[key]))
+                                                                              gt_area_per_image[key]))
+            file.write("air filtered accuracies:\n")
+            for key in accuracy_per_image_air_filt.keys():
+                custom_accuracy_air_filt += accuracy_per_image_air_filt[key] * gt_area_per_image_air_filt[key]
+                total_gt_area_air_filt += gt_area_per_image_air_filt[key]
+                file.write("custom accuracy for image {} is {} with gt area {}:\n".format(key, accuracy_per_image_air_filt[key],
+                                                                                          gt_area_per_image_air_filt[key]))
             weighted_avg_accuracy = custom_accuracy / total_gt_area
-            file.write("total accuracy (average was weighted by gt area): {}".format(weighted_avg_accuracy))
+            file.write("total accuracy (average was weighted by gt area): {}\n".format(weighted_avg_accuracy))
+            weighted_avg_accuracy_air_filt = custom_accuracy_air_filt / total_gt_area_air_filt
+            file.write("total accuracy for air filtered (average was weighted by gt area): {}".format(weighted_avg_accuracy_air_filt))
 
             vis_pdl1.plot_hist(score_accuracy, savename="area_diff_hist")
             # create new class list to replace the 'BG' with 'other'
@@ -257,3 +313,12 @@ class PDL1NetTester:
             confusstion_matrix = confusstion_matrix[indices_no_inf, :][:, indices_no_inf]
             confusstion_matrix = confusstion_matrix / np.sum(confusstion_matrix)
             vis_pdl1.plot_confusion_matrix(confusstion_matrix, copy_class_names, savename="confussion_matrix")
+            # normalize confusion matrix
+            for col in range(3):
+                confusion_matrix_by_pixel[:, col] = confusion_matrix_by_pixel[:, col] / gt_areas[col]
+            vis_pdl1.plot_confusion_matrix(confusion_matrix_by_pixel,
+                                           ["other", "pdl-negative", "pdl-positive"], savename="confusion_matrix")
+            for col in range(3):
+                confusion_matrix_by_pixel_air_filt[:, col] = confusion_matrix_by_pixel_air_filt[:, col] / gt_areas_air_filt[col]
+            vis_pdl1.plot_confusion_matrix(confusion_matrix_by_pixel_air_filt,
+                                           ["other", "pdl-negative", "pdl-positive"], savename="confusion_matrix_air_filtered")
