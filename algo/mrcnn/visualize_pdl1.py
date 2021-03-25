@@ -223,7 +223,10 @@ def remove_black_frame(image):
     _, mask = cv2.threshold(image_gray, 1.0, 255.0, cv2.THRESH_BINARY)
 
     # findContours destroys input
-    _, contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if len(cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)) == 2:
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    else:
+        _, contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # sort contours by largest first (if there are more than one)
     contours = sorted(contours, key=lambda contour: len(contour), reverse=True)
@@ -275,7 +278,13 @@ def imwrite_mask(image, masks, classes, savename, remove_inflamation=False,  sav
             image_org = cvtColor(image_org, COLOR_BGR2RGB)
             imwrite(file_name, image_org)
 
-
+def imwrite_boxes(image, boxes, masks, class_ids, class_names,
+                      scores, savename):
+    fig, ax = plt.subplots(1, figsize=(16,16))
+    vis.display_instances(image, boxes, masks, class_ids, class_names, scores, ax=ax)
+    if savename is not None:
+        file_name = os.path.join(result_dir, "box_" + savename + ".png")
+        fig.savefig(file_name)
 
 def plot_hist(data, savename=None):
     """

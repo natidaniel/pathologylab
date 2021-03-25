@@ -3,6 +3,7 @@ import skimage
 import datetime
 import matplotlib.pyplot as plt
 import os
+import pickle
 
 a = os.getcwd()
 import algo.mrcnn.visualize_pdl1 as vis_pdl1
@@ -87,11 +88,14 @@ class PDL1NetTester:
         Tests the model on the test dataset
         calculate and plots the Confusion matrix
         also calculate and plots the score of the area of the pdl1+ / (pdl1+ + pdl1-)
+        note: class ids:
+        0 - background (not ROI), 1 - inflammation, 2 - negative, 3 - positive, 4 - other
         :param show_image: if true plots the masked images from train
         :param sample: the frequency of images to show ( 1 each image, 2 every second image, etc. )
         saves the data into output folder
         """
 
+        metric_data = {}
         if result_dir_name is not None:
             if os.path.exists(vis_pdl1.result_dir):
                 # os.remove(vis_pdl1.result_dir)
@@ -101,6 +105,8 @@ class PDL1NetTester:
             if not os.path.exists(new_path):
                 os.makedirs(new_path)
             vis_pdl1.result_dir = new_path
+            metric_data = pickle.load(open(os.path.join(new_path, "metric_data.pickle"), "rb"))
+        output_file = os.path.join(vis_pdl1.result_dir, "metric_data.pickle")
 
         # configure the Config Object given to the model
         class InferenceConfig(config.PDL1NetConfig):
@@ -118,24 +124,41 @@ class PDL1NetTester:
         else:
             inference_config = InferenceConfig()
         matched_classes = []
-        confusstion_matrix = np.zeros((dataset_val.num_classes, dataset_val.num_classes))
 
-        score_accuracy = []
-        IoUs, IoU_classes = ([[] for _ in range(5)], [])
+        if result_dir_name is None:
+            confusstion_matrix = np.zeros((dataset_val.num_classes, dataset_val.num_classes))
+            score_accuracy = []
+            IoUs, IoU_classes = ([[] for _ in range(5)], [])
+            accuracy_per_image = {}
+            gt_area_per_image = {}
+            evaluated_images = []
+        else:
+            evaluated_images = metric_data["evaluated_images"]
+            accuracy_per_image = metric_data["accuracy_per_image"]
+            gt_area_per_image = metric_data["gt_area_per_image"]
+            confusstion_matrix = metric_data["confusstion_matrix"]
+            score_accuracy = metric_data["score_accuracy"]
+            IoU_classes = metric_data["IoU_classes"]
+            IoUs = metric_data["IoUs"]
 
         # iterate over all the data and
         for image_id in np.arange(dataset_val.num_images):
+            if dataset_val.image_info[image_id]["id"] in evaluated_images:
+                print("skipping image " + str(dataset_val.image_info[image_id]["id"]))
+                continue
             # Load image and ground truth data
             image, image_meta, gt_class_ids, gt_bboxes, gt_masks = \
                 modellib.load_image_gt(dataset_val, inference_config,
                                        image_id, use_mini_mask=False)
+            print(dataset_val.image_info[image_id]["id"])
 
             # plot the backbone activation layer as performed on the current image
             if hasattr(self.args, "backbone"):
                 vis_pdl1.inspect_backbone_activation(self.model, image,
-                                                     savename="{}_backbone".format(image_id), args=self.args)
+                                                     savename="{}_backbone".format(dataset_val.image_info[image_id]["id"]), args=self.args)
             else:
-                vis_pdl1.inspect_backbone_activation(self.model, image, savename="{}_backbone".format(image_id))
+                vis_pdl1.inspect_backbone_activation(self.model, image,
+                                                     savename="{}_backbone".format(dataset_val.image_info[image_id]["id"]))
             plt.close('all')
 
             # Run object detection
@@ -143,12 +166,25 @@ class PDL1NetTester:
             r = results[0]
 
             if show_image is True and image_id % sample == 0:
-                vis_pdl1.imwrite_mask(image, r['masks'], r['class_ids'], savename="{}".format(image_id), saveoriginal=True)
-                vis_pdl1.imwrite_mask(image, gt_masks, gt_class_ids, savename="{}_gt".format(image_id))
+                print("saving gt")
+                vis_pdl1.imwrite_mask(image, r['masks'], r['class_ids'],
+                                      savename="{}".format(dataset_val.image_info[image_id]["id"]), saveoriginal=False)
+                print("saving prediction")
+                vis_pdl1.imwrite_mask(image, gt_masks, gt_class_ids,
+                                      savename="{}_gt".format(dataset_val.image_info[image_id]["id"]))
+                print("saving rois boxes")
+                vis_pdl1.imwrite_boxes(image, r['rois'], r['masks'], r['class_ids'], dataset_val.class_names,
+                                       r['scores'], savename="{}".format(dataset_val.image_info[image_id]["id"]))
 
             gt_match, pred_match, overlaps = utils.compute_matches(gt_bboxes, gt_class_ids, gt_masks,
                                                                    r["rois"], r["class_ids"], r["scores"], r['masks'],
                                                                    iou_threshold=0.5, score_threshold=0.0)
+
+            # calculate our accuracy metric
+            img_accuracy, img_gt_area = utils.compute_detection_accuracy(gt_class_ids, gt_masks, r["class_ids"],
+                                                                         r["scores"], r['masks'], threshold=0)
+            accuracy_per_image[dataset_val.image_info[image_id]["id"]] = img_accuracy
+            gt_area_per_image[dataset_val.image_info[image_id]["id"]] = img_gt_area
 
             # calculates the IoU over the images and segments
             IoUs_image, IoU_classes_image = vis_pdl1.get_IoU_from_matches(pred_match, r["class_ids"], overlaps)
@@ -168,8 +204,19 @@ class PDL1NetTester:
             score = vis_pdl1.score_almost_metric(gt_masks, gt_class_ids, r['masks'], r['class_ids'])
             if not math.isnan(score):
                 score_accuracy += [score]
+            evaluated_images.append(dataset_val.image_info[image_id]["id"])
+            metric_data["evaluated_images"] = evaluated_images
+            metric_data["accuracy_per_image"] = accuracy_per_image
+            metric_data["gt_area_per_image"] = gt_area_per_image
+            metric_data["confusstion_matrix"] = confusstion_matrix
+            metric_data["score_accuracy"] = score_accuracy
+            metric_data["IoU_classes"] = IoU_classes
+            metric_data["IoUs"] = IoUs
+            with open(output_file, 'wb') as out_file:
+                pickle.dump(metric_data, out_file)
 
         # save all the test results to a file
+        print("result dir: " + str(vis_pdl1.result_dir))
         file_path = os.path.join(vis_pdl1.result_dir, "out.txt")
         with open(file_path, "w") as file:
             mean_IoU_per_image_per_class = np.zeros((5, 1))
@@ -190,6 +237,17 @@ class PDL1NetTester:
             file.write("IoU over images is \n{}\n".format(mean_IoU_per_image_per_class))
 
             file.write("the confusion matrix is:\n {}\n".format(confusstion_matrix))
+
+            file.write("\ncustom accuracy data:\n")
+            custom_accuracy = 0
+            total_gt_area = 0
+            for key in accuracy_per_image.keys():
+                custom_accuracy += accuracy_per_image[key] * gt_area_per_image[key]
+                total_gt_area += gt_area_per_image[key]
+                file.write("custom accuracy for image {} is {} with gt area {}:\n".format(key, accuracy_per_image[key],
+                                                                                          gt_area_per_image[key]))
+            weighted_avg_accuracy = custom_accuracy / total_gt_area
+            file.write("total accuracy (average was weighted by gt area): {}".format(weighted_avg_accuracy))
 
             vis_pdl1.plot_hist(score_accuracy, savename="area_diff_hist")
             # create new class list to replace the 'BG' with 'other'

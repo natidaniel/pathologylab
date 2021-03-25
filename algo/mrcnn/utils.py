@@ -735,6 +735,43 @@ def compute_matches(gt_boxes, gt_class_ids, gt_masks,
     return gt_match, pred_match, overlaps
 
 
+def compute_detection_accuracy(gt_class_ids, gt_masks,
+                               pred_class_ids, pred_scores, pred_masks,
+                               threshold=0):
+    """
+
+    :param gt_class_ids:
+    :param gt_masks:
+    :param pred_class_ids:
+    :param pred_scores:
+    :param pred_masks:
+    :param threshold:
+    :return:
+    """
+    cancer_mask_gt = np.zeros(1024, dtype=bool)
+    cancer_mask_pred = np.zeros(1024, dtype=bool)
+    for ind, class_id in enumerate(gt_class_ids):
+        if class_id in [2, 3]:
+            cancer_mask_gt = np.logical_or(cancer_mask_gt, gt_masks[:, :, ind])
+    for ind, class_id in enumerate(pred_class_ids):
+        if class_id in [2, 3] and pred_scores[ind] > threshold:
+            cancer_mask_pred = np.logical_or(cancer_mask_pred, pred_masks[:, :, ind])
+    return compute_regulated_overlap(cancer_mask_pred, cancer_mask_gt)
+
+
+def compute_regulated_overlap(pred_mask, gt_mask, lamda=1):
+    # If either set of masks is empty return empty result
+    if pred_mask.shape[-1] == 0 or gt_mask.shape[-1] == 0:
+        return np.zeros((pred_mask.shape[-1], gt_mask.shape[-1]))
+    # calculate out accuracy metric
+    intersections = np.logical_and(pred_mask, gt_mask)
+    false_positive = np.logical_xor(pred_mask, intersections)
+    intersections_area = np.sum(intersections)
+    false_positive_area = np.sum(false_positive)
+    gt_area = np.sum(gt_mask)
+    return (intersections_area / (gt_area + lamda * false_positive_area)), gt_area
+
+
 def compute_ap(gt_boxes, gt_class_ids, gt_masks,
                pred_boxes, pred_class_ids, pred_scores, pred_masks,
                iou_threshold=0.5):
