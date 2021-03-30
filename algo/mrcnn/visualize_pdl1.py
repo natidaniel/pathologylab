@@ -126,13 +126,17 @@ def get_confusion_matrix_pixel_level(gt_masks, pred_masks, gt_class_ids, pred_cl
     pdl_negative_mask_gt = get_class_mask(2, gt_masks, gt_class_ids)
     pdl_positive_mask_pred = get_class_mask(3, pred_masks, pred_class_ids)
     pdl_negative_mask_pred = get_class_mask(2, pred_masks, pred_class_ids)
-    other_mask_gt = np.logical_not(np.logical_or(pdl_positive_mask_gt, pdl_negative_mask_gt))
-    other_mask_pred = np.logical_not(np.logical_or(pdl_positive_mask_pred, pdl_negative_mask_pred))
-    # order in matrix: other, negative, positive
-    confusion_matrix = np.zeros((3, 3))
-    gt = [other_mask_gt, pdl_negative_mask_gt, pdl_positive_mask_gt]
-    pred = [other_mask_pred, pdl_negative_mask_pred, pdl_positive_mask_pred]
-    gt_areas = np.zeros(3)
+    air_mask_gt = get_class_mask(5, gt_masks, gt_class_ids)
+    air_mask_pred = get_class_mask(5, pred_masks, pred_class_ids)
+    other_mask_gt = np.logical_not(np.logical_or(
+        np.logical_or(pdl_positive_mask_gt, pdl_negative_mask_gt), air_mask_gt))
+    other_mask_pred = np.logical_not(np.logical_or(
+        np.logical_or(pdl_positive_mask_pred, pdl_negative_mask_pred), air_mask_pred))
+    # order in matrix: other, air, negative, positive
+    confusion_matrix = np.zeros((4, 4))
+    gt = [other_mask_gt, air_mask_gt, pdl_negative_mask_gt, pdl_positive_mask_gt]
+    pred = [other_mask_pred, air_mask_pred, pdl_negative_mask_pred, pdl_positive_mask_pred]
+    gt_areas = np.zeros(4)
     for i, gt_mask in enumerate(gt):
         gt_areas[i] = np.sum(gt_mask)
         for j, pred_mask in enumerate(pred):
@@ -188,7 +192,7 @@ def get_IoU_from_matches(match_pred2gt, matched_classes, ovelaps):
         1. IoUs - IoU for all segments
         2. IoUs_classes - mean IoU per class
     """
-    IoUs = [ [] for _ in range(5) ]
+    IoUs = [ [] for _ in range(6) ]
     match_pred2gt = match_pred2gt.astype(np.int32)
     for pred, gt in enumerate(match_pred2gt):
         if gt < 0:
@@ -196,7 +200,7 @@ def get_IoU_from_matches(match_pred2gt, matched_classes, ovelaps):
         IoUs[matched_classes[pred]].append(ovelaps[pred, gt])
 
     # mean segments's IoU according to classes
-    IoUs_classes = np.zeros((5, 1))
+    IoUs_classes = np.zeros((6, 1))
     for class_idx, lst in enumerate(IoUs):
         if not lst:
             continue
@@ -204,6 +208,27 @@ def get_IoU_from_matches(match_pred2gt, matched_classes, ovelaps):
         IoUs_classes[class_idx] = (np.mean(arr))
 
     return IoUs, IoUs_classes
+
+
+def get_image_areas(gt_masks, gt_class_ids, pred_masks, pred_class_ids):
+    """
+    return the area of the pdl-positive and pdl-negative prediction and groud-truth
+    :param gt_masks: masks as resulted from model.load_image_gt function
+    :param gt_class_ids: classes as resulted from model.load_image_gt function
+    :param pred_masks: masks as resulted from PDL1NetTester.test function
+    :param pred_class_ids: classes as resulted from PDL1NetTester.test function
+    :return:  pred_pos_area, pred_neg_area, gt_pos_area, gt_neg_area
+    """
+    pdl_positive_mask_gt = get_class_mask(3, gt_masks, gt_class_ids)
+    pdl_negative_mask_gt = get_class_mask(2, gt_masks, gt_class_ids)
+    pdl_positive_mask_pred = get_class_mask(3, pred_masks, pred_class_ids)
+    pdl_negative_mask_pred = get_class_mask(2, pred_masks, pred_class_ids)
+    pred_pos_area = np.sum(pdl_positive_mask_pred)
+    pred_neg_area = np.sum(pdl_negative_mask_pred)
+    gt_pos_area = np.sum(pdl_positive_mask_gt)
+    gt_neg_area = np.sum(pdl_negative_mask_gt)
+    return pred_pos_area, pred_neg_area, gt_pos_area, gt_neg_area
+
 
 def score_area(masks_positive, masks_negative):
     """
@@ -220,6 +245,25 @@ def score_area(masks_positive, masks_negative):
     score = positive_area / (positive_area + negative_area)
     return score
 
+
+def calculate_image_score(gt_masks, gt_classes, pred_masks, pred_classes):
+    """
+    Calculate the score of the ground-truth image and the prediction image using `score_area` function.
+    :param gt_masks: masks as resulted from model.load_image_gt function
+    :param gt_classes: classes as resulted from model.load_image_gt function
+    :param pred_masks: masks as resulted from PDL1NetTester.test function
+    :param pred_classes: classes as resulted from PDL1NetTester.test function
+    :return: ground-truth score and prediction score
+    """
+    gt_positive_masks = gt_masks[..., gt_classes == 3]
+    gt_negative_masks = gt_masks[..., gt_classes == 2]
+    score_gt = score_area(gt_positive_masks, gt_negative_masks)
+    pred_positive_masks = pred_masks[..., pred_classes == 3]
+    pred_negative_masks = pred_masks[..., pred_classes == 2]
+    score_pred = score_area(pred_positive_masks, pred_negative_masks)
+    return score_pred, score_gt
+
+
 def score_almost_metric(gt_masks, gt_classes, pred_masks, pred_classes):
     """
     Calculate the score of the ground-truth image and the prediction image using `score_area` function.
@@ -230,12 +274,7 @@ def score_almost_metric(gt_masks, gt_classes, pred_masks, pred_classes):
     :param pred_classes: classes as resulted from PDL1NetTester.test function
     :return: difference between ground-truth score and prediction score
     """
-    gt_positive_masks = gt_masks[..., gt_classes == 3]
-    gt_negative_masks = gt_masks[..., gt_classes == 2]
-    score_gt = score_area(gt_positive_masks, gt_negative_masks)
-    pred_positive_masks = pred_masks[..., pred_classes == 3]
-    pred_negative_masks = pred_masks[..., pred_classes == 2]
-    score_pred = score_area(pred_positive_masks, pred_negative_masks)
+    score_pred, score_gt = calculate_image_score(gt_masks, gt_classes, pred_masks, pred_classes)
     if math.isnan(score_gt):
         diff = score_pred
     elif math.isnan(score_pred):
@@ -245,6 +284,7 @@ def score_almost_metric(gt_masks, gt_classes, pred_masks, pred_classes):
     else:
         diff = score_pred - score_gt
     return diff
+
 
 def remove_black_frame(image):
     """
@@ -297,7 +337,7 @@ def imwrite_mask(image, masks, classes, savename, remove_inflamation=False,  sav
         #     mask[masks[:, :, i] is True] = (masks[:, :, i] * classes[i])[masks[:,:,i] is True]
         masks = masks * classes
         mask = np.max(masks, axis=2)
-        class_to_color = {1: (0, 1., 0), 2: (1., 0, 0), 3: (0, 0, 1.)}
+        class_to_color = {5: (0, 1., 0), 2: (1., 0, 0), 3: (0, 0, 1.)}
         edited_image = image.copy()
         for class_ in np.unique(classes.ravel()):
             edited_image = vis.apply_mask(edited_image, mask, class_to_color[class_], label=class_, alpha=0.5)

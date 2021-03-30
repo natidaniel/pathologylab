@@ -740,13 +740,16 @@ def rgb2gray(rgb):
     return np.dot(rgb[...,:3], [0.2989, 0.5870, 0.1140])
 
 
-def clean_air(img, img_masks):
+def clean_air(img, img_masks, img_classes=None):
     gray = copy.deepcopy(img)
     gray = (1/256) * rgb2gray(gray)
     msk = gray < 0.95  # mask for not air
     filtered_masks = np.empty(img_masks.shape)
     for i in range(img_masks.shape[-1]):
-        filtered_masks[:, :, i] = np.logical_and(msk, img_masks[:, :, i])
+        if img_classes is not None and img_classes[i] == 5:
+            filtered_masks[:, :, i] = img_masks[:, :, i]
+        else:
+            filtered_masks[:, :, i] = np.logical_and(msk, img_masks[:, :, i])
     return filtered_masks
 
 

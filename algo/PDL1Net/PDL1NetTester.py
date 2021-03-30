@@ -127,10 +127,12 @@ class PDL1NetTester:
 
         if result_dir_name is None:
             confusstion_matrix = np.zeros((dataset_val.num_classes, dataset_val.num_classes))
-            confusion_matrix_by_pixel = np.zeros((3, 3))
-            confusion_matrix_by_pixel_air_filt = np.zeros((3, 3))
-            gt_areas = [0, 0, 0]
-            gt_areas_air_filt = [0, 0, 0]
+            confusion_matrix_by_pixel = np.zeros((4, 4))
+            confusion_matrix_by_pixel_air_filt = np.zeros((4, 4))
+            areas = np.array([0., 0., 0., 0.])
+            areas_air_filt = np.array([0., 0., 0., 0.])
+            gt_areas = np.array([0., 0., 0., 0.])
+            gt_areas_air_filt = np.array([0., 0., 0., 0.])
             score_accuracy = []
             IoUs, IoU_classes = ([[] for _ in range(5)], [])
             accuracy_per_image = {}
@@ -147,6 +149,8 @@ class PDL1NetTester:
             confusstion_matrix = metric_data["confusstion_matrix"]
             confusion_matrix_by_pixel = metric_data["confusion_matrix_by_pixel"]
             confusion_matrix_by_pixel_air_filt = metric_data["confusion_matrix_by_pixel_air_filt"]
+            areas = metric_data["areas"]
+            areas_air_filt = metric_data["areas_air_filt"]
             gt_areas = metric_data["gt_areas"]
             gt_areas_air_filt = metric_data["gt_areas_air_filt"]
             score_accuracy = metric_data["score_accuracy"]
@@ -176,8 +180,8 @@ class PDL1NetTester:
             # Run object detection
             results = self.model.detect([image], verbose=0)
             r = results[0]
-            pred_masks_air_filt = utils.clean_air(image, r['masks'])
-            gt_masks_air_filt = utils.clean_air(image, gt_masks)
+            pred_masks_air_filt = utils.clean_air(image, r['masks'], r['class_ids'])
+            gt_masks_air_filt = utils.clean_air(image, gt_masks, gt_class_ids)
 
             if show_image is True and image_id % sample == 0:
                 # save prediction images
@@ -217,11 +221,11 @@ class PDL1NetTester:
 
             # calculates the IoU over the images and segments
             IoUs_image, IoU_classes_image = vis_pdl1.get_IoU_from_matches(pred_match, r["class_ids"], overlaps)
-            for i in range(len(IoUs_image)):
-                IoUs[i] += IoUs_image[i]
-            IoU_classes += [IoU_classes_image]
+            # for i in range(len(IoUs_image)):
+            #     IoUs[i] += IoUs_image[i]
+            # IoU_classes += [IoU_classes_image]
 
-            confusstion_matrix += vis_pdl1.get_confusion_matrix(4, gt_class_ids, r["class_ids"], r["scores"],
+            confusstion_matrix += vis_pdl1.get_confusion_matrix(5, gt_class_ids, r["class_ids"], r["scores"],
                                                                       overlaps, [], threshold=0.5)
             confusion_matrix_by_pixel_temp, gt_areas_temp = \
                 vis_pdl1.get_confusion_matrix_pixel_level(gt_masks, r['masks'], gt_class_ids, r['class_ids'])
@@ -232,6 +236,13 @@ class PDL1NetTester:
             confusion_matrix_by_pixel_air_filt += confusion_matrix_by_pixel_air_filt_temp
             gt_areas += gt_areas_temp
             gt_areas_air_filt += gt_areas_air_filt_temp
+
+            # calculate the areas of each class for prediction and gt
+            temp_areas = vis_pdl1.get_image_areas(gt_masks, gt_class_ids, r['masks'], r['class_ids'])
+            temp_areas_air_filt = \
+                vis_pdl1.get_image_areas(gt_masks_air_filt, gt_class_ids, pred_masks_air_filt, r['class_ids'])
+            areas += temp_areas
+            areas_air_filt += temp_areas_air_filt
 
             #  obtain all the elemnts in pred which have corresponding GT elemnt
             pred_match_exist = pred_match > -1
@@ -251,6 +262,8 @@ class PDL1NetTester:
             metric_data["confusstion_matrix"] = confusstion_matrix
             metric_data["confusion_matrix_by_pixel"] = confusion_matrix_by_pixel
             metric_data["confusion_matrix_by_pixel_air_filt"] = confusion_matrix_by_pixel_air_filt
+            metric_data["areas"] = areas
+            metric_data["areas_air_filt"] = areas_air_filt
             metric_data["gt_areas"] = gt_areas
             metric_data["gt_areas_air_filt"] = gt_areas_air_filt
             metric_data["score_accuracy"] = score_accuracy
@@ -263,22 +276,22 @@ class PDL1NetTester:
         print("result dir: " + str(vis_pdl1.result_dir))
         file_path = os.path.join(vis_pdl1.result_dir, "out.txt")
         with open(file_path, "w") as file:
-            mean_IoU_per_image_per_class = np.zeros((5, 1))
-            IoU_classes = np.stack(IoU_classes).reshape(-1, 5)
-            for i in range(IoU_classes.shape[1]):
-                if not any(IoU_classes[:, i] != 0):
-                    continue
-                mean_IoU_per_image_per_class[i] = IoU_classes[IoU_classes[:, i] != 0, i].mean()
-            # mean_IoU_per_image_per_seg = np.mean(IoU_classes, axis=0)
-            mean_IoUs_per_seg = np.zeros((len(IoUs), 1))
-            for i in range(len(IoUs)):
-                if not IoUs[i]:
-                    continue
-                IoUs[i] = np.array(IoUs[i])
-                mean_IoUs_per_seg[i] = np.mean(IoUs[i])
-            file.write('accuracy:\n{}\n'.format(score_accuracy))
-            file.write("IoU over segments is \n{}\n".format(mean_IoUs_per_seg))
-            file.write("IoU over images is \n{}\n".format(mean_IoU_per_image_per_class))
+        #     mean_IoU_per_image_per_class = np.zeros((5, 1))
+        #     IoU_classes = np.stack(IoU_classes).reshape(-1, 5)
+        #     for i in range(IoU_classes.shape[1]):
+        #         if not any(IoU_classes[:, i] != 0):
+        #             continue
+        #         mean_IoU_per_image_per_class[i] = IoU_classes[IoU_classes[:, i] != 0, i].mean()
+        #     # mean_IoU_per_image_per_seg = np.mean(IoU_classes, axis=0)
+        #     mean_IoUs_per_seg = np.zeros((len(IoUs), 1))
+        #     for i in range(len(IoUs)):
+        #         if not IoUs[i]:
+        #             continue
+        #         IoUs[i] = np.array(IoUs[i])
+        #         mean_IoUs_per_seg[i] = np.mean(IoUs[i])
+        #     file.write('accuracy:\n{}\n'.format(score_accuracy))
+        #     file.write("IoU over segments is \n{}\n".format(mean_IoUs_per_seg))
+        #     file.write("IoU over images is \n{}\n".format(mean_IoU_per_image_per_class))
 
             file.write("the confusion matrix is:\n {}\n".format(confusstion_matrix))
             file.write("the confusion matrix by pixel is:\n {}\n".format(confusion_matrix_by_pixel))
@@ -305,20 +318,31 @@ class PDL1NetTester:
             weighted_avg_accuracy_air_filt = custom_accuracy_air_filt / total_gt_area_air_filt
             file.write("total accuracy for air filtered (average was weighted by gt area): {}".format(weighted_avg_accuracy_air_filt))
 
+            pred_score = areas[0] / (areas[0] + areas[1])
+            gt_score = areas[2] / (areas[2] + areas[3])
+            pred_score_air_filt = areas_air_filt[0] / (areas_air_filt[0] + areas_air_filt[1])
+            gt_score_air_filt = areas_air_filt[2] / (areas_air_filt[2] + areas_air_filt[3])
+            file.write("\nprediction score (by area): {}\n".format(pred_score))
+            file.write("ground truth score (by area): {}\n".format(gt_score))
+            file.write("prediction score (by area, air filtered): {}\n".format(pred_score_air_filt))
+            file.write("ground truth score (by area, air filtered): {}\n".format(gt_score_air_filt))
+
             vis_pdl1.plot_hist(score_accuracy, savename="area_diff_hist")
             # create new class list to replace the 'BG' with 'other'
-            right_indices = [4, 2, 3]
+            right_indices = [4, 5, 2, 3]
             copy_class_names = [dataset_val.class_names[i] for i in right_indices]
             indices_no_inf = [0] + list(range(2, 4))
             confusstion_matrix = confusstion_matrix[indices_no_inf, :][:, indices_no_inf]
             confusstion_matrix = confusstion_matrix / np.sum(confusstion_matrix)
             vis_pdl1.plot_confusion_matrix(confusstion_matrix, copy_class_names, savename="confussion_matrix")
             # normalize confusion matrix
-            for col in range(3):
-                confusion_matrix_by_pixel[:, col] = confusion_matrix_by_pixel[:, col] / gt_areas[col]
+            # for col in range(3):
+            #     confusion_matrix_by_pixel[:, col] = confusion_matrix_by_pixel[:, col] / gt_areas[col]
+            confusion_matrix_by_pixel = confusion_matrix_by_pixel / np.sum(confusion_matrix_by_pixel, 0)
             vis_pdl1.plot_confusion_matrix(confusion_matrix_by_pixel,
-                                           ["other", "pdl-negative", "pdl-positive"], savename="confusion_matrix")
-            for col in range(3):
-                confusion_matrix_by_pixel_air_filt[:, col] = confusion_matrix_by_pixel_air_filt[:, col] / gt_areas_air_filt[col]
+                                           ["other", "air", "pdl-negative", "pdl-positive"], savename="confusion_matrix")
+            # for col in range(3):
+            #     confusion_matrix_by_pixel_air_filt[:, col] = confusion_matrix_by_pixel_air_filt[:, col] / gt_areas_air_filt[col]
+            confusion_matrix_by_pixel_air_filt = confusion_matrix_by_pixel_air_filt / np.sum(confusion_matrix_by_pixel_air_filt, 0)
             vis_pdl1.plot_confusion_matrix(confusion_matrix_by_pixel_air_filt,
-                                           ["other", "pdl-negative", "pdl-positive"], savename="confusion_matrix_air_filtered")
+                                           ["other", "air", "pdl-negative", "pdl-positive"], savename="confusion_matrix_air_filtered")
