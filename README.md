@@ -19,6 +19,8 @@ folder.
 ## Data
 Creation of the data: For training and evaluation, our network's inputs are segmented patches of about 800×800 pixels
 from IHC slides. Due to our cooperation with RAMBAM hospital, the raw data was given as real patients' scans.
+<br />
+the raw data consists 254 segmented and labeled patches
 ### Data for Sessions
 Both train session and test session expect the next folder structure:
 ```
@@ -36,21 +38,29 @@ Both train session and test session expect the next folder structure:
      | via_export_json.json
 
 ```
-The code expects the json files in `val` and `train` to be formatted the way "VIA tool" exports json.
+The code expects the json files in `val` and `train` to be formatted the way "VIA tool" exports json (only the "_via_img_metadata" attribute of the exported json).
+<br />
 Each json file has to contain only `polygon` region shapes and not other variates (like `point` or `triangle` etc.).
-`PDL1NetDataLoader` the class responsible to load the data that reads the json file and loads only images that has non-trivial 
-annotations. It expects to find the json file contains the annotation for the images in the folder.
+<br />
+`PDL1NetDataLoader` is the class which is responsible to read the json file and load the images.
+It expects to find the json file contains the annotation for the images in the folder, like shown above.
+<br />
 The labels have priority-order to insure that when collision is made, the higher priority label will prevail.
 Priority is determine by the index position in the class list, the higher the index, the higher the priority.
+<br />
+In our data the classes are listed as: 1 - inflammation, 2 - PDL1-negative, 3 - PDL1-positive, 4 - other, 5 - air.
+<br />
+the inflammation and air classes are not used in the net. the `PDL1NetDataLoader` transforms 'inflammation' into 'other',
+and air class was created automatically by the code (by marking white pixels), but it seems that the use of it reduced the accuracy of the net.
 
 ## Usage
 To initiate a train session use the next command in the command line:
 ```commandline
-PDL1_main.py train --datatset path\to\root\folder --weights path\to\weight\file [optinal --augment]
+PDL1_main.py train --datatset path\to\root\folder --weights path\to\weight\file [optional --augment]
 ```
 To initiate a test session use the next command in the command line:
 ```commandline
-PDL1_main.py test --datatset path\to\root\folder --weights path\to\weight\file
+PDL1_main.py test --datatset path\to\root\folder --weights path\to\weight\file [optional --result_dir path\to\result\dir]
 ```
 **The Flags in Details:**
 * *train* \ *test* - choose the session type to start
@@ -62,14 +72,48 @@ For more details on the data look at **Data for Sessions**
     * exact path to `.h5` file that holds the weights
 * *--augment* (optional) if this flag is being used the model will augment the 
 data using various transformations (only available on train sessions).
+* *--result_dir* (optional) save the results of the session to this folder.
+if the folder contains unfinished session (the network sometimes crashes because of memory errors) - 
+it continues the existing session (only available on test sessions).
 
 **Example on Savir-Lab computer:** 
 ```commandline
-PDL1_main.py test --dataset D:\Nati\Itamar_n_Shai\Datasets\data_yael\DataMaskRCNN --weights D:\Nati\Itamar_n_Shai\Mask_RCNN\logs\101_augm0\mask_rcnn_pdl1_0090.h5 
+PDL1_main.py test --dataset D:\Nati\Itamar_n_Dekel\data\ --weights D:\Nati\Itamar_n_Dekel\pathologylab\logs\pdl120210329T1425_aug_img1-256_medium_anchor_rpn-th-06_min-confidence-06_detect-th-06\mask_rcnn_pdl1_0105.h5
 ```
 ```commandline
-PDL1_main.py train --dataset D:\Nati\Itamar_n_Shai\Datasets\data_yael\DataMaskRCNN --weights coco --augment
+PDL1_main.py train --dataset D:\Nati\Itamar_n_Dekel\data\ --weights coco --augment
 ```
+
+## Train and Test Sequences
+each ground-truth image in the relevant json (train or val) modified by pre-proccesing which removes all the air pixels from it's classes maskings 
+(removing each white pixel from the class mask and converting it to 'other').
+<br />
+than the image is going trough the net.
+<br />
+lastly, air is filtered from the prediction of the net's masking from each class's mask.
+<br />
+in the test sequence, after passing all the images in the net, all the metrics are calculated, 
+and the cell counting algorithm is run on each image's prediction in order to calculate the WSI's score by cell number.
+
+## Test Output
+The output of the test sequence consists:
+<br />
+* confusion matrix for the classes classification
+* confusion matrix for the classesc lassification after air-filtering
+* output file with additional metrics, like IoU of the prediction (before and after air-filtering), 
+the WSI score (by area and by cell count), the WSI score of the ground-truth (by area and by cell count)
+<br />
+and for each image patch -
+<br />
+* image of the boxes of the rois the net found. the roi's confidence is written above each box 
+* image of the masking of the pdl-negative and pdl-positive the net found
+* the ground-truth masking of the image
+
+## Helpful Scripts
+in the scripts folder you can find some helpful script for data ordering and data pre-processing (like gamma correction of the images).
+<br />
+for example, there is a script which calculates the area covered by pdl1-positive and pdl1-negative for each image, in order to check the data balancing.
+this script also helps to split the data into train and test jsons.
 
 ## Configuration
 The configuration is a class that controls the meta parameters of the model - for example, the number of classes,
@@ -91,7 +135,7 @@ This tool can run only on **linux** because it needs `pycococreator` module, tha
  file with `pip install -r` as seen in the *Setup* section.
 
 ## License
-Copyright 2020 Nati Daniel & Itamar Gruber & Shai Nahum Gefen
+Copyright 2020 Nati Daniel & Itamar Gruber & Shai Nahum Gefen & Itamar Goldman & Dekel Meirom
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 

@@ -91,6 +91,9 @@ if __name__ == '__main__':
                         help='Video to apply the color splash effect on')
     parser.add_argument('--augment', required=False, action="store_true",
                         help='if the flag is used then train will run with augmenter')
+    parser.add_argument('--result_dir', required=False,
+                        metavar="/path/to/result/",
+                        help='Path to output folder when running on test dataset')
     args = parser.parse_args()
 
     # Validate arguments
@@ -162,7 +165,7 @@ if __name__ == '__main__':
         Tester.detect_and_show_mask(image_path=args.image)
     elif args.command == "test":
         Tester = PDL1NetTester.PDL1NetTester(model, args)
-        Tester.test_sequence()
+        Tester.test_sequence(result_dir_name=args.result_dir)
     else:
         print("'{}' is not recognized. "
               "Use 'train' or 'splash'".format(args.command))
