@@ -104,7 +104,6 @@ The output of the test sequence consists:
 the WSI score (by area and by cell count), the WSI score of the ground-truth (by area and by cell count)
 <br />
 and for each image patch -
-<br />
 * image of the boxes of the rois the net found. the roi's confidence is written above each box 
 * image of the masking of the pdl-negative and pdl-positive the net found
 * the ground-truth masking of the image
