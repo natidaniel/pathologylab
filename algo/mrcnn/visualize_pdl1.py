@@ -126,17 +126,23 @@ def get_confusion_matrix_pixel_level(gt_masks, pred_masks, gt_class_ids, pred_cl
     pdl_negative_mask_gt = get_class_mask(2, gt_masks, gt_class_ids)
     pdl_positive_mask_pred = get_class_mask(3, pred_masks, pred_class_ids)
     pdl_negative_mask_pred = get_class_mask(2, pred_masks, pred_class_ids)
-    air_mask_gt = get_class_mask(5, gt_masks, gt_class_ids)
-    air_mask_pred = get_class_mask(5, pred_masks, pred_class_ids)
-    other_mask_gt = np.logical_not(np.logical_or(
-        np.logical_or(pdl_positive_mask_gt, pdl_negative_mask_gt), air_mask_gt))
-    other_mask_pred = np.logical_not(np.logical_or(
-        np.logical_or(pdl_positive_mask_pred, pdl_negative_mask_pred), air_mask_pred))
+    # air_mask_gt = get_class_mask(5, gt_masks, gt_class_ids)
+    # air_mask_pred = get_class_mask(5, pred_masks, pred_class_ids)
+    # other_mask_gt = np.logical_not(np.logical_or(
+    #     np.logical_or(pdl_positive_mask_gt, pdl_negative_mask_gt), air_mask_gt))
+    # other_mask_pred = np.logical_not(np.logical_or(
+    #     np.logical_or(pdl_positive_mask_pred, pdl_negative_mask_pred), air_mask_pred))
+    other_mask_gt = np.logical_not(np.logical_or(pdl_positive_mask_gt, pdl_negative_mask_gt))
+    other_mask_pred = np.logical_not(np.logical_or(pdl_positive_mask_pred, pdl_negative_mask_pred))
     # order in matrix: other, air, negative, positive
-    confusion_matrix = np.zeros((4, 4))
-    gt = [other_mask_gt, air_mask_gt, pdl_negative_mask_gt, pdl_positive_mask_gt]
-    pred = [other_mask_pred, air_mask_pred, pdl_negative_mask_pred, pdl_positive_mask_pred]
-    gt_areas = np.zeros(4)
+    # confusion_matrix = np.zeros((4, 4))
+    confusion_matrix = np.zeros((3, 3))
+    # gt = [other_mask_gt, air_mask_gt, pdl_negative_mask_gt, pdl_positive_mask_gt]
+    # pred = [other_mask_pred, air_mask_pred, pdl_negative_mask_pred, pdl_positive_mask_pred]
+    gt = [other_mask_gt, pdl_negative_mask_gt, pdl_positive_mask_gt]
+    pred = [other_mask_pred, pdl_negative_mask_pred, pdl_positive_mask_pred]
+    # gt_areas = np.zeros(4) # for air
+    gt_areas = np.zeros(3)
     for i, gt_mask in enumerate(gt):
         gt_areas[i] = np.sum(gt_mask)
         for j, pred_mask in enumerate(pred):
@@ -192,7 +198,7 @@ def get_IoU_from_matches(match_pred2gt, matched_classes, ovelaps):
         1. IoUs - IoU for all segments
         2. IoUs_classes - mean IoU per class
     """
-    IoUs = [ [] for _ in range(6) ]
+    IoUs = [ [] for _ in range(5) ]
     match_pred2gt = match_pred2gt.astype(np.int32)
     for pred, gt in enumerate(match_pred2gt):
         if gt < 0:
@@ -200,7 +206,7 @@ def get_IoU_from_matches(match_pred2gt, matched_classes, ovelaps):
         IoUs[matched_classes[pred]].append(ovelaps[pred, gt])
 
     # mean segments's IoU according to classes
-    IoUs_classes = np.zeros((6, 1))
+    IoUs_classes = np.zeros((5, 1))
     for class_idx, lst in enumerate(IoUs):
         if not lst:
             continue
@@ -337,7 +343,7 @@ def imwrite_mask(image, masks, classes, savename, remove_inflamation=False,  sav
         #     mask[masks[:, :, i] is True] = (masks[:, :, i] * classes[i])[masks[:,:,i] is True]
         masks = masks * classes
         mask = np.max(masks, axis=2)
-        class_to_color = {5: (0, 1., 0), 2: (1., 0, 0), 3: (0, 0, 1.)}
+        class_to_color = {1: (0, 1., 0), 2: (1., 0, 0), 3: (0, 0, 1.)}
         edited_image = image.copy()
         for class_ in np.unique(classes.ravel()):
             edited_image = vis.apply_mask(edited_image, mask, class_to_color[class_], label=class_, alpha=0.5)

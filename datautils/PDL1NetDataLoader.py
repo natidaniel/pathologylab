@@ -28,7 +28,7 @@ class PDL1NetDataset(utils.Dataset):
         self.add_class("PDL1", 3, "positive")
         # if we decide to delete the next line reduce the number of classes in the config
         self.add_class("PDL1", 4, "other")
-        self.add_class("PDL1", 5, "air")
+        # self.add_class("PDL1", 5, "air")
 
         ids = [c["id"] for c in self.class_info]
         names = [c["name"] for c in self.class_info]
@@ -64,8 +64,8 @@ class PDL1NetDataset(utils.Dataset):
         # The VIA tool saves images in the JSON even if they don't have any
         # annotations. Skip unannotated images.
         # annotations = [a for a in annotations if a['regions']]
-        # type2class = {"1": "inflammation", "2": "negative", "3": "positive", "4": "other"}  # yael's data
-        type2class = {"1": "inflammation", "2": "negative", "3": "positive", "4": "other", "5": "air"}  # yael's data
+        type2class = {"1": "inflammation", "2": "negative", "3": "positive", "4": "other"}  # yael's data
+        # type2class = {"1": "inflammation", "2": "negative", "3": "positive", "4": "other", "5": "air"}  # yael's data
         # type2class = {"1": "other", "2": "positive", "3": "positive", "4": "other"}
         # type2class = {"inf": "inflammation", "neg": "negative", "pos": "positive", "other": "other"} #synthetic's data
         # Add images
@@ -113,10 +113,10 @@ class PDL1NetDataset(utils.Dataset):
 
         # Convert polygons to a bitmap mask of shape
         # [height, width, instance_count]
-        # mask = np.zeros([info["height"], info["width"], len(info["polygons"])],
-        #                 dtype=np.uint8)
-        mask = np.zeros([info["height"], info["width"], len(info["polygons"])+1],
+        mask = np.zeros([info["height"], info["width"], len(info["polygons"])],
                         dtype=np.uint8)
+        # mask = np.zeros([info["height"], info["width"], len(info["polygons"])+1],
+        #                 dtype=np.uint8)
         # TODO: make sure no intersection are made between polygons
         for i, p in enumerate(info["polygons"]):
             # Get indexes of pixels inside the polygon and set them to 1
@@ -133,10 +133,10 @@ class PDL1NetDataset(utils.Dataset):
             # filter air from mask
             mask[:, :, i] = mask[:, :, i] * np.logical_not(info["air_mask"])
         # add air class
-        mask[..., -1] = info["air_mask"]
+        # mask[..., -1] = info["air_mask"]
         # mask_classes = [self.class_name2id[name] for name in self.class_names]
         mask_classes = [self.class_name2id[name] for name in info["classes"]]
-        mask_classes.append(5)
+        # mask_classes.append(5)
         mask_classes = np.array(mask_classes, dtype=np.int32)
 
         # clean masks intersections
