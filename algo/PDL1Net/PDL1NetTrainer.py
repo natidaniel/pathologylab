@@ -9,7 +9,10 @@ class PDL1NetTrainer:
     def __init__(self, model, config, args, augment=True):
         # Training dataset.
         self.dataset_train = loaderlib.PDL1NetDataset()
-        self.dataset_train.load_pdl1net_dataset(args.dataset, "train")
+        if args.synthetic:
+            self.dataset_train.load_pdl1net_dataset(args.dataset, "synthetic", synthetic=args.synthetic)
+        else:
+            self.dataset_train.load_pdl1net_dataset(args.dataset, "train")
         self.dataset_train.prepare()
 
         # Validation dataset

@@ -94,6 +94,9 @@ if __name__ == '__main__':
     parser.add_argument('--result_dir', required=False,
                         metavar="/path/to/result/",
                         help='Path to output folder when running on test dataset')
+    parser.add_argument('--synthetic', required=False,
+                        action="store_true",
+                        help='True if the data is synthetic')
     args = parser.parse_args()
 
     # Validate arguments

@@ -17,7 +17,7 @@ class PDL1NetDataset(utils.Dataset):
         super().__init__(class_map)
         self.active_inflammation_tag = active_inflammation_tag
 
-    def load_pdl1net_dataset(self, dataset_dir, subset):
+    def load_pdl1net_dataset(self, dataset_dir, subset, synthetic=False):
         """Load a subset of the PDL1 dataset.
         dataset_dir: Root directory of the dataset.
         subset: Subset to load: train or val
@@ -57,46 +57,78 @@ class PDL1NetDataset(utils.Dataset):
         # TODO: make sure the json has the right name
         # ATTENTION! the parser will work only for via POLYGON segmented regions
         # annotations = json.load(open(os.path.join(dataset_dir, "train_synth_via_json.json")))
-        json_dir = os.path.join(dataset_dir, "via_export_json.json")
-        annotations = json.load(open(json_dir))
-        annotations = list(annotations.values())  # don't need the dict keys
+        if synthetic:
+            # full types (we use only positive, negative and other):
+            # type2class = {0: "other", 1: "inflammation", 2: "negative", 3: "positive", 4: "black-pad", 5: "air", 6: "cell", 7: "noise"}
+            type2class = {0: "other", 1: "other", 2: "negative", 3: "positive", 4: "other", 5: "other",
+                          6: "other", 7: "other"}
+            images_path = os.path.join(dataset_dir, "images")
+            images_names = os.listdir(images_path)
+            labels_path = os.path.join(dataset_dir, "labels")
+            for image_name in images_names:
+                if "input_label" not in image_name:
+                    label_name = image_name.split("_cells")[0] + ".png"
+                    label_path = os.path.join(labels_path, label_name)
+                    classes = list(type2class.values())
 
-        # The VIA tool saves images in the JSON even if they don't have any
-        # annotations. Skip unannotated images.
-        # annotations = [a for a in annotations if a['regions']]
-        type2class = {"1": "inflammation", "2": "negative", "3": "positive", "4": "other"}  # yael's data
-        # type2class = {"1": "inflammation", "2": "negative", "3": "positive", "4": "other", "5": "air"}  # yael's data
-        # type2class = {"1": "other", "2": "positive", "3": "positive", "4": "other"}
-        # type2class = {"inf": "inflammation", "neg": "negative", "pos": "positive", "other": "other"} #synthetic's data
-        # Add images
-        for a in annotations:
-            # Get the x, y coordinaets of points of the polygons that make up
-            # the outline of each object instance. There are stores in the
-            # shape_attributes (see json format above)
-            polygons = [r['shape_attributes'] for r in a['regions']]
-            # classes = [r['region_attributes']['category'] for r in a['regions']]  # validate that a list of classes is obtained
-            classes = [r['region_attributes']['type'] for r in
-                       a['regions']]  # 'category' for synthetic data,  'type' for yael's data
-            classes = [type2class[c] for c in classes]
+                    image_path = os.path.join(images_path, image_name)
+                    image = skimage.io.imread(image_path)
+                    height, width = image.shape[:2]
+                    # add air mask
+                    gray = (1 / 256) * utils.rgb2gray(image)
+                    air_mask = gray > 0.95
 
-            # load_mask() needs the image size to convert polygons to masks.
-            # Unfortunately, VIA doesn't include it in JSON, so we must read
-            # the image. This is only managable since the dataset is tiny.
-            image_path = os.path.join(dataset_dir, a['filename'])
-            image = skimage.io.imread(image_path)
-            height, width = image.shape[:2]
-            # add air mask
-            gray = (1 / 256) * utils.rgb2gray(image)
-            air_mask = gray > 0.95
+                    self.add_image(
+                        "PDL1",
+                        image_id=image_name,  # use file name as a unique image id
+                        path=image_path,
+                        width=width, height=height,
+                        synthetic=True,
+                        label_path=label_path,
+                        classes=classes,
+                        air_mask=air_mask)
 
-            self.add_image(
-                "PDL1",
-                image_id=a['filename'],  # use file name as a unique image id
-                path=image_path,
-                width=width, height=height,
-                polygons=polygons,
-                classes=classes,
-                air_mask=air_mask)
+        else:
+            json_dir = os.path.join(dataset_dir, "via_export_json.json")
+            annotations = json.load(open(json_dir))
+            annotations = list(annotations.values())  # don't need the dict keys
+
+            # The VIA tool saves images in the JSON even if they don't have any
+            # annotations. Skip unannotated images.
+            # annotations = [a for a in annotations if a['regions']]
+            type2class = {"1": "inflammation", "2": "negative", "3": "positive", "4": "other"}  # yael's data
+            # type2class = {"1": "inflammation", "2": "negative", "3": "positive", "4": "other", "5": "air"}  # yael's data
+            # type2class = {"1": "other", "2": "positive", "3": "positive", "4": "other"}
+            # type2class = {"inf": "inflammation", "neg": "negative", "pos": "positive", "other": "other"} #synthetic's data
+            # Add images
+            for a in annotations:
+                # Get the x, y coordinaets of points of the polygons that make up
+                # the outline of each object instance. There are stores in the
+                # shape_attributes (see json format above)
+                polygons = [r['shape_attributes'] for r in a['regions']]
+                # classes = [r['region_attributes']['category'] for r in a['regions']]  # validate that a list of classes is obtained
+                classes = [r['region_attributes']['type'] for r in
+                           a['regions']]  # 'category' for synthetic data,  'type' for yael's data
+                classes = [type2class[c] for c in classes]
+
+                # load_mask() needs the image size to convert polygons to masks.
+                # Unfortunately, VIA doesn't include it in JSON, so we must read
+                # the image. This is only managable since the dataset is tiny.
+                image_path = os.path.join(dataset_dir, a['filename'])
+                image = skimage.io.imread(image_path)
+                height, width = image.shape[:2]
+                # add air mask
+                gray = (1 / 256) * utils.rgb2gray(image)
+                air_mask = gray > 0.95
+
+                self.add_image(
+                    "PDL1",
+                    image_id=a['filename'],  # use file name as a unique image id
+                    path=image_path,
+                    width=width, height=height,
+                    polygons=polygons,
+                    classes=classes,
+                    air_mask=air_mask)
 
     def load_mask(self, image_id):
         """
@@ -110,6 +142,25 @@ class PDL1NetDataset(utils.Dataset):
         info = self.image_info[image_id]
         if info["source"] != "PDL1":
             return super(self.__class__, self).load_mask(image_id)
+
+        if "synthetic" in info.keys() and info["synthetic"]:
+            label_path = info["label_path"]
+            labels = cv2.imread(label_path)
+            mask = np.zeros([info["height"], info["width"], len(info["classes"])], dtype=np.uint8)
+            for i in range(info["height"]):
+                for j in range(info["width"]):
+                    class_type = labels[i, j, 0]
+                    mask[i, j, class_type] = 1
+
+            mask_classes = [self.class_name2id[name] for name in info["classes"]]
+            mask_classes = np.array(mask_classes, dtype=np.int32)
+            # remove other from masks
+            mask = mask[:, :, mask_classes != self.class_name2id["other"]]
+            mask_classes = mask_classes[mask_classes != self.class_name2id["other"]]
+            # Return mask, and array of class IDs of each instance. Since we have
+            # one class ID only, we return an array of 1s
+
+            return mask, mask_classes
 
         # Convert polygons to a bitmap mask of shape
         # [height, width, instance_count]
