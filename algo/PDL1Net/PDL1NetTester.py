@@ -12,6 +12,7 @@ import algo.mrcnn.utils as utils
 import algo.mrcnn.model as modellib
 from datautils.PDL1NetDataLoader import PDL1NetDataset
 import params.PDL1NetConfig as config
+from algo.PDL1Net.cell_count import count_nucleus
 import math
 
 class PDL1NetTester:
@@ -30,7 +31,7 @@ class PDL1NetTester:
         if not isinstance(images, list):
             images = [images]
         return self.model.detect(images, verbose=1)[0]
-    
+
     def color_splash(self, image, mask):
         """Apply color splash effect.
         image: RGB image [height, width, 3]
@@ -136,17 +137,25 @@ class PDL1NetTester:
             gt_areas_air_filt = np.array([0., 0., 0.])
             score_accuracy = []
             IoUs, IoU_classes = ([[] for _ in range(5)], [])
+            IoU_per_image = {}
+            IoU_per_image_air_filt = {}
+            gt_tumor_area_per_image = {}
+            gt_tumor_area_per_image_air_filt = {}
             accuracy_per_image = {}
-            gt_area_per_image = {}
+            areas_per_image = {}
             accuracy_per_image_air_filt = {}
-            gt_area_per_image_air_filt = {}
+            areas_per_image_air_filt = {}
+            cell_count_per_image = {}
+            cell_count_per_image_gt = {}
             evaluated_images = []
         else:
             evaluated_images = metric_data["evaluated_images"]
             accuracy_per_image = metric_data["accuracy_per_image"]
-            gt_area_per_image = metric_data["gt_area_per_image"]
+            areas_per_image = metric_data["areas_per_image"]
+            gt_tumor_area_per_image = metric_data["gt_tumor_area_per_image"]
             accuracy_per_image_air_filt = metric_data["accuracy_per_image_air_filt"]
-            gt_area_per_image_air_filt = metric_data["gt_area_per_image_air_filt"]
+            areas_per_image_air_filt = metric_data["areas_per_image_air_filt"]
+            gt_tumor_area_per_image_air_filt = metric_data["gt_tumor_area_per_image_air_filt"]
             confusstion_matrix = metric_data["confusstion_matrix"]
             confusion_matrix_by_pixel = metric_data["confusion_matrix_by_pixel"]
             confusion_matrix_by_pixel_air_filt = metric_data["confusion_matrix_by_pixel_air_filt"]
@@ -155,27 +164,32 @@ class PDL1NetTester:
             gt_areas = metric_data["gt_areas"]
             gt_areas_air_filt = metric_data["gt_areas_air_filt"]
             score_accuracy = metric_data["score_accuracy"]
+            cell_count_per_image = metric_data["cell_count_per_image"]
+            cell_count_per_image_gt = metric_data["cell_count_per_image_gt"]
             IoU_classes = metric_data["IoU_classes"]
             IoUs = metric_data["IoUs"]
+            IoU_per_image = metric_data["IoU_per_image"]
+            IoU_per_image_air_filt = metric_data["IoU_per_image_air_filt"]
 
         # iterate over all the data and
         for image_id in np.arange(dataset_val.num_images):
-            if dataset_val.image_info[image_id]["id"] in evaluated_images:
-                print("skipping image " + str(dataset_val.image_info[image_id]["id"]))
+            image_name = dataset_val.image_info[image_id]["id"]
+            if image_name in evaluated_images:
+                print("skipping image " + str(image_name))
                 continue
             # Load image and ground truth data
             image, image_meta, gt_class_ids, gt_bboxes, gt_masks = \
                 modellib.load_image_gt(dataset_val, inference_config,
                                        image_id, use_mini_mask=False)
-            print(dataset_val.image_info[image_id]["id"])
+            print(image_name)
 
             # plot the backbone activation layer as performed on the current image
             # if hasattr(self.args, "backbone"):
             #     vis_pdl1.inspect_backbone_activation(self.model, image,
-            #                                          savename="{}_backbone".format(dataset_val.image_info[image_id]["id"]), args=self.args)
+            #                                          savename="{}_backbone".format(image_name), args=self.args)
             # else:
             #     vis_pdl1.inspect_backbone_activation(self.model, image,
-            #                                          savename="{}_backbone".format(dataset_val.image_info[image_id]["id"]))
+            #                                          savename="{}_backbone".format(image_name))
             plt.close('all')
 
             # Run object detection
@@ -191,22 +205,22 @@ class PDL1NetTester:
             if show_image is True and image_id % sample == 0:
                 # save prediction images
                 # vis_pdl1.imwrite_mask(image, r['masks'], r['class_ids'],
-                #                       savename="{}".format(dataset_val.image_info[image_id]["id"]), saveoriginal=False)
+                #                       savename="{}".format(image_name), saveoriginal=False)
                 vis_pdl1.imwrite_mask(image, pred_masks_air_filt, r['class_ids'],
-                                      savename="{}_air_filt".format(dataset_val.image_info[image_id]["id"]), saveoriginal=False)
+                                      savename="{}_air_filt".format(image_name), saveoriginal=False)
                 # save ground truth images
                 # vis_pdl1.imwrite_mask(image, gt_masks, gt_class_ids,
-                #                       savename="{}_gt".format(dataset_val.image_info[image_id]["id"]))
+                #                       savename="{}_gt".format(image_name))
                 vis_pdl1.imwrite_mask(image, gt_masks_air_filt, gt_class_ids,
-                                      savename="{}_gt_air_filt".format(dataset_val.image_info[image_id]["id"]))
+                                      savename="{}_gt_air_filt".format(image_name))
                 # print("saving rois boxes")
                 vis_pdl1.imwrite_boxes(image, r['rois'], r['masks'], r['class_ids'], dataset_val.class_names,
-                                       r['scores'], savename="{}".format(dataset_val.image_info[image_id]["id"]))
+                                       r['scores'], savename="{}".format(image_name))
                 # save image of the gt of each class separately
                 # vis_pdl1.imwrite_class(image, gt_masks, gt_class_ids, 2,
-                #                        savename="{}_negative".format(dataset_val.image_info[image_id]["id"]))
+                #                        savename="{}_negative".format(image_name))
                 # vis_pdl1.imwrite_class(image, gt_masks, gt_class_ids, 3,
-                #                        savename="{}_positive".format(dataset_val.image_info[image_id]["id"]))
+                #                        savename="{}_positive".format(image_name))
 
             gt_match, pred_match, overlaps = utils.compute_matches(gt_bboxes, gt_class_ids, gt_masks,
                                                                    r["rois"], r["class_ids"], r["scores"], r['masks'],
@@ -215,20 +229,42 @@ class PDL1NetTester:
             # calculate our accuracy metric
             img_accuracy, img_gt_area = utils.compute_detection_accuracy(gt_class_ids, gt_masks, r["class_ids"],
                                                                          r["scores"], r['masks'], threshold=0)
-            accuracy_per_image[dataset_val.image_info[image_id]["id"]] = img_accuracy
-            gt_area_per_image[dataset_val.image_info[image_id]["id"]] = img_gt_area
+            accuracy_per_image[image_name] = img_accuracy
+            gt_tumor_area_per_image[image_name] = img_gt_area
 
             img_accuracy_air_filt, img_gt_area_air_filt = \
                 utils.compute_detection_accuracy(gt_class_ids, gt_masks_air_filt, r["class_ids"], r["scores"],
                                                  pred_masks_air_filt, threshold=0)
-            accuracy_per_image_air_filt[dataset_val.image_info[image_id]["id"]] = img_accuracy_air_filt
-            gt_area_per_image_air_filt[dataset_val.image_info[image_id]["id"]] = img_gt_area_air_filt
+            accuracy_per_image_air_filt[image_name] = img_accuracy_air_filt
+            gt_tumor_area_per_image_air_filt[image_name] = img_gt_area_air_filt
 
             # calculates the IoU over the images and segments
             IoUs_image, IoU_classes_image = vis_pdl1.get_IoU_from_matches(pred_match, r["class_ids"], overlaps)
             for i in range(len(IoUs_image)):
                 IoUs[i] += IoUs_image[i]
             IoU_classes += [IoU_classes_image]
+
+            # calculate IoU in pixel level (for classes - negative (2), positive (3), other (4))
+            IoU_per_image[image_name] = {"NEGATIVE": utils.compute_image_iou(r['masks'], r["class_ids"], gt_masks,
+                                                                             gt_class_ids, [2]),
+                                         "POSITIVE": utils.compute_image_iou(r['masks'], r["class_ids"], gt_masks,
+                                                                             gt_class_ids, [3]),
+                                         "OTHER": utils.compute_image_iou(r['masks'], r["class_ids"], gt_masks,
+                                                                          gt_class_ids, [4]),
+                                         "ALL": utils.compute_image_iou(r['masks'], r["class_ids"], gt_masks,
+                                                                        gt_class_ids, [2, 3, 4])}
+            IoU_per_image_air_filt[image_name] = {"NEGATIVE": utils.compute_image_iou(pred_masks_air_filt,
+                                                                                      r["class_ids"], gt_masks_air_filt,
+                                                                                      gt_class_ids, [2]),
+                                                  "POSITIVE": utils.compute_image_iou(pred_masks_air_filt,
+                                                                                      r["class_ids"], gt_masks_air_filt,
+                                                                                      gt_class_ids, [3]),
+                                                  "OTHER": utils.compute_image_iou(pred_masks_air_filt,
+                                                                                   r["class_ids"], gt_masks_air_filt,
+                                                                                   gt_class_ids, [4]),
+                                                  "ALL": utils.compute_image_iou(pred_masks_air_filt,
+                                                                                 r["class_ids"], gt_masks_air_filt,
+                                                                                 gt_class_ids, [2, 3, 4])}
 
             confusstion_matrix += vis_pdl1.get_confusion_matrix(4, gt_class_ids, r["class_ids"], r["scores"],
                                                                       overlaps, [], threshold=0.5)
@@ -248,6 +284,18 @@ class PDL1NetTester:
                 vis_pdl1.get_image_areas(gt_masks_air_filt, gt_class_ids, pred_masks_air_filt, r['class_ids'])
             areas += temp_areas
             areas_air_filt += temp_areas_air_filt
+            areas_per_image[image_name] = temp_areas
+            areas_per_image_air_filt[image_name] = temp_areas_air_filt
+
+            # calculate the number of cells for each class for prediction
+            cell_count_positive = count_nucleus(image, "POSITIVE", r['masks'], r['class_ids'])
+            cell_count_negative = count_nucleus(image, "NEGATIVE", r['masks'], r['class_ids'])
+            cell_count_per_image[image_name] = {"POSITIVE": cell_count_positive,
+                                                "NEGATIVE": cell_count_negative}
+            cell_count_positive_gt = count_nucleus(image, "POSITIVE", gt_masks, gt_class_ids)
+            cell_count_negative_gt = count_nucleus(image, "NEGATIVE", gt_masks, gt_class_ids)
+            cell_count_per_image_gt[image_name] = {"POSITIVE": cell_count_positive_gt,
+                                                   "NEGATIVE": cell_count_negative_gt}
 
             #  obtain all the elemnts in pred which have corresponding GT elemnt
             pred_match_exist = pred_match > -1
@@ -258,12 +306,14 @@ class PDL1NetTester:
             score = vis_pdl1.score_almost_metric(gt_masks, gt_class_ids, r['masks'], r['class_ids'])
             if not math.isnan(score):
                 score_accuracy += [score]
-            evaluated_images.append(dataset_val.image_info[image_id]["id"])
+            evaluated_images.append(image_name)
             metric_data["evaluated_images"] = evaluated_images
             metric_data["accuracy_per_image"] = accuracy_per_image
-            metric_data["gt_area_per_image"] = gt_area_per_image
+            metric_data["areas_per_image"] = areas_per_image
+            metric_data["gt_tumor_area_per_image"] = gt_tumor_area_per_image
             metric_data["accuracy_per_image_air_filt"] = accuracy_per_image_air_filt
-            metric_data["gt_area_per_image_air_filt"] = gt_area_per_image_air_filt
+            metric_data["areas_per_image_air_filt"] = areas_per_image_air_filt
+            metric_data["gt_tumor_area_per_image_air_filt"] = gt_tumor_area_per_image_air_filt
             metric_data["confusstion_matrix"] = confusstion_matrix
             metric_data["confusion_matrix_by_pixel"] = confusion_matrix_by_pixel
             metric_data["confusion_matrix_by_pixel_air_filt"] = confusion_matrix_by_pixel_air_filt
@@ -272,8 +322,11 @@ class PDL1NetTester:
             metric_data["gt_areas"] = gt_areas
             metric_data["gt_areas_air_filt"] = gt_areas_air_filt
             metric_data["score_accuracy"] = score_accuracy
+            metric_data["cell_count_per_image"] = cell_count_per_image
             metric_data["IoU_classes"] = IoU_classes
             metric_data["IoUs"] = IoUs
+            metric_data["IoU_per_image"] = IoU_per_image
+            metric_data["IoU_per_image_air_filt"] = IoU_per_image_air_filt
             with open(output_file, 'wb') as out_file:
                 pickle.dump(metric_data, out_file)
 
@@ -312,20 +365,82 @@ class PDL1NetTester:
             custom_accuracy_air_filt = 0
             total_gt_area_air_filt = 0
             for key in accuracy_per_image.keys():
-                custom_accuracy += accuracy_per_image[key] * gt_area_per_image[key]
-                total_gt_area += gt_area_per_image[key]
-                file.write("custom accuracy for image {} is {} with gt area {}:\n".format(key, accuracy_per_image[key],
-                                                                              gt_area_per_image[key]))
+                custom_accuracy += accuracy_per_image[key] * gt_tumor_area_per_image[key]
+                total_gt_area += gt_tumor_area_per_image[key]
+                file.write("custom accuracy for image {} is {} with gt area {}. "
+                           "IoU: {}, negative IoU: {}, positive IoU: {}, other IoU: {}\n".
+                           format(key, accuracy_per_image[key], gt_tumor_area_per_image[key],
+                                  IoU_per_image["ALL"][key], IoU_per_image["NEGATIVE"][key],
+                                  IoU_per_image["POSITIVE"][key], IoU_per_image["OTHER"][key]))
             file.write("air filtered accuracies:\n")
             for key in accuracy_per_image_air_filt.keys():
-                custom_accuracy_air_filt += accuracy_per_image_air_filt[key] * gt_area_per_image_air_filt[key]
-                total_gt_area_air_filt += gt_area_per_image_air_filt[key]
-                file.write("custom accuracy for image {} is {} with gt area {}:\n".format(key, accuracy_per_image_air_filt[key],
-                                                                                          gt_area_per_image_air_filt[key]))
+                custom_accuracy_air_filt += accuracy_per_image_air_filt[key] * gt_tumor_area_per_image_air_filt[key]
+                total_gt_area_air_filt += gt_tumor_area_per_image_air_filt[key]
+                file.write("custom accuracy for image {} is {} with gt area {}. "
+                           "IoU: {}, negative IoU: {}, positive IoU: {}, other IoU: {}\n".
+                           format(key, accuracy_per_image_air_filt[key], gt_tumor_area_per_image_air_filt[key],
+                                  IoU_per_image_air_filt["ALL"][key], IoU_per_image_air_filt["NEGATIVE"][key],
+                                  IoU_per_image_air_filt["POSITIVE"][key], IoU_per_image_air_filt["OTHER"][key]))
+
             weighted_avg_accuracy = custom_accuracy / total_gt_area
             file.write("total accuracy (average was weighted by gt area): {}\n".format(weighted_avg_accuracy))
             weighted_avg_accuracy_air_filt = custom_accuracy_air_filt / total_gt_area_air_filt
             file.write("total accuracy for air filtered (average was weighted by gt area): {}".format(weighted_avg_accuracy_air_filt))
+            file.write("average IoU per image: All classes: {}, Negative: {}, Positive: {}, Other: {}".format(
+                np.mean(list(IoU_per_image["ALL"].values())), np.mean(list(IoU_per_image["NEGATIVE"].values())),
+                np.mean(list(IoU_per_image["POSITIVE"].values())), np.mean(list(IoU_per_image["OTHER"].values())
+                                                                           )))
+            file.write("average IoU per image air filtered: All classes: {}, Negative: {}, Positive: {}, Other: {}".format(
+                np.mean(list(IoU_per_image_air_filt["ALL"].values())), np.mean(list(IoU_per_image_air_filt["NEGATIVE"].values())),
+                np.mean(list(IoU_per_image_air_filt["POSITIVE"].values())), np.mean(list(IoU_per_image_air_filt["OTHER"].values())
+                                                                                    )))
+
+            total_correct_categories = 0
+            file.write("\n\nscore by area per image:\n")
+            for key in areas_per_image.keys():
+                pred_score, pred_category, gt_score, gt_category, correct_category = \
+                    utils.compute_category_accuracy_by_area(areas_per_image[0], areas_per_image[1],
+                                                            areas_per_image[2], areas_per_image[3])
+                if correct_category:
+                    total_correct_categories += 1
+                file.write("image {}: prediction score: {}, prediction category: {}"
+                           "gt score: {}, gt category: {}\n".format(key, pred_score, pred_category, gt_score, gt_category))
+            file.write("correct categories: {}% ({})\n".format(
+                total_correct_categories / len(areas_per_image.keys()) * 100, total_correct_categories))
+
+            total_correct_categories_air_filt = 0
+            file.write("\n\nscore by area per image (air filtered:\n")
+            for key in areas_per_image_air_filt.keys():
+                pred_score, pred_category, gt_score, gt_category, correct_category = \
+                    utils.compute_category_accuracy_by_area(areas_per_image_air_filt[0], areas_per_image_air_filt[1],
+                                                            areas_per_image_air_filt[2], areas_per_image_air_filt[3])
+                if correct_category:
+                    total_correct_categories_air_filt += 1
+                file.write("image {}: prediction score: {}, prediction category: {}"
+                           "gt score: {}, gt category: {}\n".format(key, pred_score, pred_category, gt_score,
+                                                                    gt_category))
+            file.write("correct categories air filtered: {}% ({})\n".format(
+                total_correct_categories_air_filt / len(areas_per_image.keys()) * 100, total_correct_categories_air_filt))
+
+            # categories and score by cell count
+            total_correct_categories_cell_count = 0
+            file.write("\n\nscore by cell count per image:\n")
+            for key in cell_count_per_image.keys():
+                pred_score, pred_category, gt_score, gt_category, correct_category = \
+                    utils.compute_category_accuracy_by_cells(cell_count_per_image["POSITIVE"],
+                                                             cell_count_per_image["NEGATIVE"],
+                                                             cell_count_per_image_gt["POSITIVE"],
+                                                             cell_count_per_image_gt["NEGATIVE"],
+                                                             areas_per_image[2],
+                                                             areas_per_image[3])
+                if correct_category:
+                    total_correct_categories_cell_count += 1
+                file.write("image {}: prediction score: {}, prediction category: {}"
+                           "gt score: {}, gt category: {}\n".format(key, pred_score, pred_category, gt_score,
+                                                                    gt_category))
+            file.write("correct categories: {}% ({})\n".format(
+                total_correct_categories_cell_count / len(cell_count_per_image.keys()) * 100,
+                total_correct_categories_cell_count))
 
             pred_score = areas[0] / (areas[0] + areas[1])
             gt_score = areas[2] / (areas[2] + areas[3])

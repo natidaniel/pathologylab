@@ -79,6 +79,25 @@ def compute_iou(box, boxes, box_area, boxes_area):
     return iou
 
 
+def compute_image_iou(pred_img_masks, pred_img_class_ids,
+                      gt_img_masks, gt_img_class_ids,
+                      class_ids_to_compute):
+    pred_mask = np.zeros(pred_img_masks[0].shape)
+    gt_mask = np.zeros(gt_img_masks[0].shape)
+    # compute IOU only for the given classes.
+    # pixeles with class other than the labels in "class_ids_to_compute" will be
+    # unlabeled and will not participant in the IOU computation
+    for label in class_ids_to_compute:
+        class_mask_pred = get_class_mask(label, pred_img_masks, pred_img_class_ids)
+        class_mask_gt = get_class_mask(label, gt_img_masks, gt_img_class_ids)
+        # add 1 to the label, so label 0 will not get confused with unlabeled pixels
+        pred_mask += ((label + 1) * class_mask_pred)
+        gt_mask += ((label + 1) * class_mask_gt)
+    intersections = np.sum(pred_mask == gt_mask)
+    unions = np.sum(pred_mask != 0) + np.sum(gt_mask != 0) - intersections
+    return intersections / unions
+
+
 def compute_overlaps(boxes1, boxes2):
     """Computes IoU overlaps between two sets of boxes.
     boxes1, boxes2: [N, (y1, x1, y2, x2)].
@@ -667,6 +686,22 @@ def generate_pyramid_anchors(scales, ratios, feature_shapes, feature_strides,
 #  Miscellaneous
 ############################################################
 
+def get_class_mask(target_class_id, masks_lists, class_ids):
+    """
+    return the mask of specific class for the whole image from the list of all the
+    roi masks
+    :param target_class_id: the id of the class to compute the while mask for
+    :param masks_lists: the list of all the masks to compute the image masks from
+    :param class_ids: the class id for each roi in the masks list
+    :return: mask (binary image) of the given class
+    """
+    mask = np.zeros((1024, 1024), dtype=bool)
+    for ind, class_id in enumerate(class_ids):
+        if class_id == target_class_id:
+            mask = np.logical_or(mask, masks_lists[:, :, ind])
+    return mask
+
+
 def trim_zeros(x):
     """It's common to have tensors larger than the available data and
     pad with zeros. This function removes rows that are all zeros.
@@ -790,6 +825,75 @@ def compute_regulated_overlap(pred_mask, gt_mask, lamda=1):
     if gt_area + lamda * false_positive_area == 0:
         return 1, gt_area  # in case in both gt and prediction all image is other
     return (intersections_area / (gt_area + lamda * false_positive_area)), gt_area
+
+
+def compute_category_accuracy_by_area(pred_pdl1_positive_area, pred_pdl1_negative_area,
+                                      gt_pdl1_positive_area, gt_pdl1_negative_area):
+    """
+    compute the category of the PDL1-positivity for a given image.
+    the category is based on the WSI score -
+    LOW - below 1%
+    MID - between 1% and 50%
+    HIGH - above 50%
+    :param pred_pdl1_positive_area: PDL1 positive area in prediction
+    :param pred_pdl1_negative_area: PDL1 negative area in prediction
+    :param gt_pdl1_positive_area: PDL1 positive area in ground truth
+    :param gt_pdl1_negative_area: PDL1 negative area in ground truth
+    :return:
+    """
+    pred_score = pred_pdl1_positive_area / (pred_pdl1_positive_area + pred_pdl1_negative_area)
+    gt_score = gt_pdl1_positive_area / (gt_pdl1_positive_area + gt_pdl1_negative_area)
+    pred_category = None
+    gt_category = None
+    if pred_score < 0.01:
+        pred_category = "LOW"
+    elif pred_score < 0.5:
+        pred_category = "MID"
+    else:
+        pred_category = "HIGH"
+    if gt_score < 0.01:
+        gt_category = "LOW"
+    elif gt_score < 0.5:
+        gt_category = "MID"
+    else:
+        gt_category = "HIGH"
+    return pred_score, pred_category, gt_score, gt_category, pred_category == gt_category
+
+
+def compute_category_accuracy_by_cells(pred_pdl1_positive_cells, pred_pdl1_negative_cells,
+                                       gt_pdl1_positive_cells, gt_pdl1_negative_cells,
+                                       gt_pdl1_positive_area, gt_pdl1_negative_area):
+    """
+    compute the category of the PDL1-positivity for a given image based on cell counts.
+    compare the results to the gt by area.
+    the category is based on the WSI score -
+    LOW - below 1%
+    MID - between 1% and 50%
+    HIGH - above 50%
+    :param pred_pdl1_positive_cells: PDL1 positive cells in prediction
+    :param pred_pdl1_negative_cells: PDL1 negative cells in prediction
+    :param gt_pdl1_positive_area: PDL1 positive area in ground truth
+    :param gt_pdl1_negative_area: PDL1 negative area in ground truth
+    :return:
+    """
+    pred_score = pred_pdl1_positive_cells / (pred_pdl1_positive_cells + pred_pdl1_negative_cells)
+    gt_score = gt_pdl1_positive_cells / (gt_pdl1_positive_cells + gt_pdl1_negative_cells)
+    gt_score_area = gt_pdl1_positive_area / (gt_pdl1_positive_area + gt_pdl1_negative_area)
+    pred_category = None
+    gt_category = None
+    if pred_score < 0.01:
+        pred_category = "LOW"
+    elif pred_score < 0.5:
+        pred_category = "MID"
+    else:
+        pred_category = "HIGH"
+    if gt_score_area < 0.01:
+        gt_category = "LOW"
+    elif gt_score_area < 0.5:
+        gt_category = "MID"
+    else:
+        gt_category = "HIGH"
+    return pred_score, pred_category, gt_score, gt_category, pred_category == gt_category
 
 
 def compute_ap(gt_boxes, gt_class_ids, gt_masks,
