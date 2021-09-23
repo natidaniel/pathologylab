@@ -137,8 +137,8 @@ class PDL1NetTester:
             gt_areas_air_filt = np.array([0., 0., 0.])
             score_accuracy = []
             IoUs, IoU_classes = ([[] for _ in range(5)], [])
-            IoU_per_image = {}
-            IoU_per_image_air_filt = {}
+            IoU_per_image = {"NEGATIVE": {}, "POSITIVE": {}, "OTHER": {}, "ALL": {}}
+            IoU_per_image_air_filt = {"NEGATIVE": {}, "POSITIVE": {}, "OTHER": {}, "ALL": {}}
             gt_tumor_area_per_image = {}
             gt_tumor_area_per_image_air_filt = {}
             accuracy_per_image = {}
@@ -245,26 +245,26 @@ class PDL1NetTester:
             IoU_classes += [IoU_classes_image]
 
             # calculate IoU in pixel level (for classes - negative (2), positive (3), other (4))
-            IoU_per_image[image_name] = {"NEGATIVE": utils.compute_image_iou(r['masks'], r["class_ids"], gt_masks,
-                                                                             gt_class_ids, [2]),
-                                         "POSITIVE": utils.compute_image_iou(r['masks'], r["class_ids"], gt_masks,
-                                                                             gt_class_ids, [3]),
-                                         "OTHER": utils.compute_image_iou(r['masks'], r["class_ids"], gt_masks,
-                                                                          gt_class_ids, [4]),
-                                         "ALL": utils.compute_image_iou(r['masks'], r["class_ids"], gt_masks,
-                                                                        gt_class_ids, [2, 3, 4])}
-            IoU_per_image_air_filt[image_name] = {"NEGATIVE": utils.compute_image_iou(pred_masks_air_filt,
-                                                                                      r["class_ids"], gt_masks_air_filt,
-                                                                                      gt_class_ids, [2]),
-                                                  "POSITIVE": utils.compute_image_iou(pred_masks_air_filt,
-                                                                                      r["class_ids"], gt_masks_air_filt,
-                                                                                      gt_class_ids, [3]),
-                                                  "OTHER": utils.compute_image_iou(pred_masks_air_filt,
-                                                                                   r["class_ids"], gt_masks_air_filt,
-                                                                                   gt_class_ids, [4]),
-                                                  "ALL": utils.compute_image_iou(pred_masks_air_filt,
-                                                                                 r["class_ids"], gt_masks_air_filt,
-                                                                                 gt_class_ids, [2, 3, 4])}
+            IoU_per_image["NEGATIVE"][image_name] = utils.compute_image_iou(r['masks'], r["class_ids"], gt_masks,
+                                                                            gt_class_ids, [2])
+            IoU_per_image["POSITIVE"][image_name] = utils.compute_image_iou(r['masks'], r["class_ids"], gt_masks,
+                                                                            gt_class_ids, [3])
+            IoU_per_image["OTHER"][image_name] = utils.compute_image_iou(r['masks'], r["class_ids"], gt_masks,
+                                                                         gt_class_ids, [4])
+            IoU_per_image["ALL"][image_name]= utils.compute_image_iou(r['masks'], r["class_ids"], gt_masks,
+                                                                      gt_class_ids, [2, 3, 4])
+            IoU_per_image_air_filt["NEGATIVE"][image_name] = utils.compute_image_iou(pred_masks_air_filt,
+                                                                                     r["class_ids"], gt_masks_air_filt,
+                                                                                     gt_class_ids, [2])
+            IoU_per_image_air_filt["POSITIVE"][image_name] = utils.compute_image_iou(pred_masks_air_filt,
+                                                                                     r["class_ids"], gt_masks_air_filt,
+                                                                                     gt_class_ids, [3])
+            IoU_per_image_air_filt["OTHER"][image_name] = utils.compute_image_iou(pred_masks_air_filt,
+                                                                                  r["class_ids"], gt_masks_air_filt,
+                                                                                  gt_class_ids, [4])
+            IoU_per_image_air_filt["ALL"][image_name] = utils.compute_image_iou(pred_masks_air_filt,
+                                                                                r["class_ids"], gt_masks_air_filt,
+                                                                                gt_class_ids, [2, 3, 4])
 
             confusstion_matrix += vis_pdl1.get_confusion_matrix(4, gt_class_ids, r["class_ids"], r["scores"],
                                                                       overlaps, [], threshold=0.5)
@@ -287,13 +287,13 @@ class PDL1NetTester:
             areas_per_image[image_name] = temp_areas
             areas_per_image_air_filt[image_name] = temp_areas_air_filt
 
-            # calculate the number of cells for each class for prediction
-            cell_count_positive = count_nucleus(image, "POSITIVE", r['masks'], r['class_ids'])
-            cell_count_negative = count_nucleus(image, "NEGATIVE", r['masks'], r['class_ids'])
+            # calculate the number of cells for each class for prediction (negative (2), positive (3), other (4))
+            cell_count_positive, _ = count_nucleus(image, 3, r['masks'], r['class_ids'])
+            cell_count_negative, _ = count_nucleus(image, 2, r['masks'], r['class_ids'])
             cell_count_per_image[image_name] = {"POSITIVE": cell_count_positive,
                                                 "NEGATIVE": cell_count_negative}
-            cell_count_positive_gt = count_nucleus(image, "POSITIVE", gt_masks, gt_class_ids)
-            cell_count_negative_gt = count_nucleus(image, "NEGATIVE", gt_masks, gt_class_ids)
+            cell_count_positive_gt, _ = count_nucleus(image, 3, gt_masks, gt_class_ids)
+            cell_count_negative_gt, _ = count_nucleus(image, 2, gt_masks, gt_class_ids)
             cell_count_per_image_gt[image_name] = {"POSITIVE": cell_count_positive_gt,
                                                    "NEGATIVE": cell_count_negative_gt}
 
@@ -323,6 +323,7 @@ class PDL1NetTester:
             metric_data["gt_areas_air_filt"] = gt_areas_air_filt
             metric_data["score_accuracy"] = score_accuracy
             metric_data["cell_count_per_image"] = cell_count_per_image
+            metric_data["cell_count_per_image_gt"] = cell_count_per_image_gt
             metric_data["IoU_classes"] = IoU_classes
             metric_data["IoUs"] = IoUs
             metric_data["IoU_per_image"] = IoU_per_image
@@ -399,8 +400,8 @@ class PDL1NetTester:
             file.write("\n\nscore by area per image:\n")
             for key in areas_per_image.keys():
                 pred_score, pred_category, gt_score, gt_category, correct_category = \
-                    utils.compute_category_accuracy_by_area(areas_per_image[0], areas_per_image[1],
-                                                            areas_per_image[2], areas_per_image[3])
+                    utils.compute_category_accuracy_by_area(areas_per_image[key][0], areas_per_image[key][1],
+                                                            areas_per_image[key][2], areas_per_image[key][3])
                 if correct_category:
                     total_correct_categories += 1
                 file.write("image {}: prediction score: {}, prediction category: {}"
@@ -412,8 +413,8 @@ class PDL1NetTester:
             file.write("\n\nscore by area per image (air filtered:\n")
             for key in areas_per_image_air_filt.keys():
                 pred_score, pred_category, gt_score, gt_category, correct_category = \
-                    utils.compute_category_accuracy_by_area(areas_per_image_air_filt[0], areas_per_image_air_filt[1],
-                                                            areas_per_image_air_filt[2], areas_per_image_air_filt[3])
+                    utils.compute_category_accuracy_by_area(areas_per_image_air_filt[key][0], areas_per_image_air_filt[key][1],
+                                                            areas_per_image_air_filt[key][2], areas_per_image_air_filt[key][3])
                 if correct_category:
                     total_correct_categories_air_filt += 1
                 file.write("image {}: prediction score: {}, prediction category: {}"
@@ -427,12 +428,12 @@ class PDL1NetTester:
             file.write("\n\nscore by cell count per image:\n")
             for key in cell_count_per_image.keys():
                 pred_score, pred_category, gt_score, gt_category, correct_category = \
-                    utils.compute_category_accuracy_by_cells(cell_count_per_image["POSITIVE"],
-                                                             cell_count_per_image["NEGATIVE"],
-                                                             cell_count_per_image_gt["POSITIVE"],
-                                                             cell_count_per_image_gt["NEGATIVE"],
-                                                             areas_per_image[2],
-                                                             areas_per_image[3])
+                    utils.compute_category_accuracy_by_cells(cell_count_per_image[key]["POSITIVE"],
+                                                             cell_count_per_image[key]["NEGATIVE"],
+                                                             cell_count_per_image_gt[key]["POSITIVE"],
+                                                             cell_count_per_image_gt[key]["NEGATIVE"],
+                                                             areas_per_image[key][2],
+                                                             areas_per_image[key][3])
                 if correct_category:
                     total_correct_categories_cell_count += 1
                 file.write("image {}: prediction score: {}, prediction category: {}"

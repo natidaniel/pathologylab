@@ -58,7 +58,9 @@ def morphological_correction_big(mask, kernel_size=5):
 
 
 def find_contours(mask):
-    _, cnts, _ = cv2.findContours(mask.astype('uint8'), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    # uncomment this line and comment the line after if using later version of openCV
+    #_, cnts, _ = cv2.findContours(mask.astype('uint8'), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    cnts, _ = cv2.findContours(mask.astype('uint8'), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     single_pixel = []
     for cnt in cnts:
         if cnt.shape[0] <= 1:
@@ -76,14 +78,15 @@ def count_nucleus(img, img_class, img_masks, img_class_ids):
         gammas = [2.2, 1.6, 1.3] # RGB
         mask = vis_pdl1.get_class_mask(2, img_masks, img_class_ids)
     else:
-        mask = None
+        mask = np.zeros((1024, 1024))
     # create the 3d mask
     temp_mask = np.broadcast_to(mask, (3, mask.shape[0], mask.shape[1]))
-    mask_3d = np.zeros((mask.shape[0], mask.shape[1], 4))
+    mask_3d = np.zeros((mask.shape[0], mask.shape[1], 3))
     for i in range(3):
         mask_3d[:, :, i] = temp_mask[i, :, :]
     # apply the mask
-    working_img = cv2.bitwise_and(working_img, working_img, mask=mask_3d)
+    working_img = working_img * mask_3d
+    working_img = working_img.astype('uint8')
 
     working_img = gamma_correction(working_img, gammas)
 

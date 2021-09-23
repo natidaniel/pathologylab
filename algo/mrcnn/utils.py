@@ -82,8 +82,8 @@ def compute_iou(box, boxes, box_area, boxes_area):
 def compute_image_iou(pred_img_masks, pred_img_class_ids,
                       gt_img_masks, gt_img_class_ids,
                       class_ids_to_compute):
-    pred_mask = np.zeros(pred_img_masks[0].shape)
-    gt_mask = np.zeros(gt_img_masks[0].shape)
+    pred_mask = np.zeros((1024, 1024))
+    gt_mask = np.zeros((1024, 1024))
     # compute IOU only for the given classes.
     # pixeles with class other than the labels in "class_ids_to_compute" will be
     # unlabeled and will not participant in the IOU computation
@@ -93,8 +93,10 @@ def compute_image_iou(pred_img_masks, pred_img_class_ids,
         # add 1 to the label, so label 0 will not get confused with unlabeled pixels
         pred_mask += ((label + 1) * class_mask_pred)
         gt_mask += ((label + 1) * class_mask_gt)
-    intersections = np.sum(pred_mask == gt_mask)
+    intersections = np.sum((pred_mask != 0) * (pred_mask == gt_mask))
     unions = np.sum(pred_mask != 0) + np.sum(gt_mask != 0) - intersections
+    if unions == 0:
+        return 0
     return intersections / unions
 
 
@@ -121,7 +123,7 @@ def compute_overlaps_masks(masks1, masks2):
     """Computes IoU overlaps between two sets of masks.
     masks1, masks2: [Height, Width, instances]
     """
-    
+
     # If either set of masks is empty return empty result
     if masks1.shape[-1] == 0 or masks2.shape[-1] == 0:
         return np.zeros((masks1.shape[-1], masks2.shape[-1]))
@@ -841,8 +843,14 @@ def compute_category_accuracy_by_area(pred_pdl1_positive_area, pred_pdl1_negativ
     :param gt_pdl1_negative_area: PDL1 negative area in ground truth
     :return:
     """
-    pred_score = pred_pdl1_positive_area / (pred_pdl1_positive_area + pred_pdl1_negative_area)
-    gt_score = gt_pdl1_positive_area / (gt_pdl1_positive_area + gt_pdl1_negative_area)
+    if pred_pdl1_positive_area + pred_pdl1_negative_area == 0:
+        pred_score = 0
+    else:
+        pred_score = pred_pdl1_positive_area / (pred_pdl1_positive_area + pred_pdl1_negative_area)
+    if gt_pdl1_positive_area + gt_pdl1_negative_area == 0:
+        gt_score = 0
+    else:
+        gt_score = gt_pdl1_positive_area / (gt_pdl1_positive_area + gt_pdl1_negative_area)
     pred_category = None
     gt_category = None
     if pred_score < 0.01:
@@ -876,9 +884,18 @@ def compute_category_accuracy_by_cells(pred_pdl1_positive_cells, pred_pdl1_negat
     :param gt_pdl1_negative_area: PDL1 negative area in ground truth
     :return:
     """
-    pred_score = pred_pdl1_positive_cells / (pred_pdl1_positive_cells + pred_pdl1_negative_cells)
-    gt_score = gt_pdl1_positive_cells / (gt_pdl1_positive_cells + gt_pdl1_negative_cells)
-    gt_score_area = gt_pdl1_positive_area / (gt_pdl1_positive_area + gt_pdl1_negative_area)
+    if pred_pdl1_positive_cells + pred_pdl1_negative_cells == 0:
+        pred_score = 0
+    else:
+        pred_score = pred_pdl1_positive_cells / (pred_pdl1_positive_cells + pred_pdl1_negative_cells)
+    if gt_pdl1_positive_cells + gt_pdl1_negative_cells == 0:
+        gt_score = 0
+    else:
+        gt_score = gt_pdl1_positive_cells / (gt_pdl1_positive_cells + gt_pdl1_negative_cells)
+    if gt_pdl1_positive_area + gt_pdl1_negative_area == 0:
+        gt_score_area = 0
+    else:
+        gt_score_area = gt_pdl1_positive_area / (gt_pdl1_positive_area + gt_pdl1_negative_area)
     pred_category = None
     gt_category = None
     if pred_score < 0.01:
