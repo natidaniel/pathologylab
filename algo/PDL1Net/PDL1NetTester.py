@@ -139,6 +139,10 @@ class PDL1NetTester:
             IoUs, IoU_classes = ([[] for _ in range(5)], [])
             IoU_per_image = {"NEGATIVE": {}, "POSITIVE": {}, "OTHER": {}, "ALL": {}}
             IoU_per_image_air_filt = {"NEGATIVE": {}, "POSITIVE": {}, "OTHER": {}, "ALL": {}}
+            total_intersections = {"NEGATIVE": 0, "POSITIVE": 0, "OTHER": 0, "ALL": 0}
+            total_unions = {"NEGATIVE": 0, "POSITIVE": 0, "OTHER": 0, "ALL": 0}
+            total_intersections_air_filt = {"NEGATIVE": 0, "POSITIVE": 0, "OTHER": 0, "ALL": 0}
+            total_unions_air_filt = {"NEGATIVE": 0, "POSITIVE": 0, "OTHER": 0, "ALL": 0}
             gt_tumor_area_per_image = {}
             gt_tumor_area_per_image_air_filt = {}
             accuracy_per_image = {}
@@ -170,6 +174,10 @@ class PDL1NetTester:
             IoUs = metric_data["IoUs"]
             IoU_per_image = metric_data["IoU_per_image"]
             IoU_per_image_air_filt = metric_data["IoU_per_image_air_filt"]
+            total_intersections = metric_data["total_intersections"]
+            total_unions = metric_data["total_unions"]
+            total_intersections_air_filt = metric_data["total_intersections_air_filt"]
+            total_unions_air_filt = metric_data["total_unions_air_filt"]
 
         # iterate over all the data and
         for image_id in np.arange(dataset_val.num_images):
@@ -244,28 +252,41 @@ class PDL1NetTester:
                 IoUs[i] += IoUs_image[i]
             IoU_classes += [IoU_classes_image]
 
-            # calculate IoU in pixel level (for classes - negative (2), positive (3), other (4))
-            IoU_per_image["NEGATIVE"][image_name] = utils.compute_image_iou(r['masks'], r["class_ids"], gt_masks,
-                                                                            gt_class_ids, [2])
-            IoU_per_image["POSITIVE"][image_name] = utils.compute_image_iou(r['masks'], r["class_ids"], gt_masks,
-                                                                            gt_class_ids, [3])
-            IoU_per_image["OTHER"][image_name] = utils.compute_image_iou(r['masks'], r["class_ids"], gt_masks,
-                                                                         gt_class_ids, [4])
-            IoU_per_image["ALL"][image_name]= utils.compute_image_iou(r['masks'], r["class_ids"], gt_masks,
-                                                                      gt_class_ids, [2, 3, 4])
-            IoU_per_image_air_filt["NEGATIVE"][image_name] = utils.compute_image_iou(pred_masks_air_filt,
-                                                                                     r["class_ids"], gt_masks_air_filt,
-                                                                                     gt_class_ids, [2])
-            IoU_per_image_air_filt["POSITIVE"][image_name] = utils.compute_image_iou(pred_masks_air_filt,
-                                                                                     r["class_ids"], gt_masks_air_filt,
-                                                                                     gt_class_ids, [3])
-            IoU_per_image_air_filt["OTHER"][image_name] = utils.compute_image_iou(pred_masks_air_filt,
-                                                                                  r["class_ids"], gt_masks_air_filt,
-                                                                                  gt_class_ids, [4])
-            IoU_per_image_air_filt["ALL"][image_name] = utils.compute_image_iou(pred_masks_air_filt,
-                                                                                r["class_ids"], gt_masks_air_filt,
-                                                                                gt_class_ids, [2, 3, 4])
+            # calculate IoU in pixel level (for classes - negative (2), positive (3), other (0))
+            IoU_per_image["NEGATIVE"][image_name], inter_neg, union_neg =\
+                utils.compute_image_iou(r['masks'], r["class_ids"], gt_masks, gt_class_ids, [2])
+            IoU_per_image["POSITIVE"][image_name], inter_pos, union_pos =\
+                utils.compute_image_iou(r['masks'], r["class_ids"], gt_masks, gt_class_ids, [3])
+            IoU_per_image["OTHER"][image_name], inter_other, union_other = \
+                utils.compute_image_iou(r['masks'], r["class_ids"], gt_masks, gt_class_ids, [0])
+            IoU_per_image["ALL"][image_name], inter_all, union_all = \
+                utils.compute_image_iou(r['masks'], r["class_ids"], gt_masks, gt_class_ids, [2, 3, 0])
+            total_intersections["NEGATIVE"] += inter_neg
+            total_unions["NEGATIVE"] += union_neg
+            total_intersections["POSITIVE"] += inter_pos
+            total_unions["POSITIVE"] += union_pos
+            total_intersections["OTHER"] += inter_other
+            total_unions["OTHER"] += union_other
+            total_intersections["ALL"] += inter_all
+            total_unions["ALL"] += union_all
+            IoU_per_image_air_filt["NEGATIVE"][image_name], inter_neg_air_filt, union_neg_air_filt = \
+                utils.compute_image_iou(pred_masks_air_filt, r["class_ids"], gt_masks_air_filt, gt_class_ids, [2])
+            IoU_per_image_air_filt["POSITIVE"][image_name], inter_pos_air_filt, union_pos_air_filt = \
+                utils.compute_image_iou(pred_masks_air_filt, r["class_ids"], gt_masks_air_filt, gt_class_ids, [3])
+            IoU_per_image_air_filt["OTHER"][image_name], inter_other_air_filt, union_other_air_filt = \
+                utils.compute_image_iou(pred_masks_air_filt, r["class_ids"], gt_masks_air_filt, gt_class_ids, [0])
+            IoU_per_image_air_filt["ALL"][image_name], inter_all_air_filt, union_all_air_filt = \
+                utils.compute_image_iou(pred_masks_air_filt, r["class_ids"], gt_masks_air_filt, gt_class_ids, [2, 3, 0])
+            total_intersections_air_filt["NEGATIVE"] += inter_neg_air_filt
+            total_unions_air_filt["NEGATIVE"] += union_neg_air_filt
+            total_intersections_air_filt["POSITIVE"] += inter_pos_air_filt
+            total_unions_air_filt["POSITIVE"] += union_pos_air_filt
+            total_intersections_air_filt["OTHER"] += inter_other_air_filt
+            total_unions_air_filt["OTHER"] += union_other_air_filt
+            total_intersections_air_filt["ALL"] += inter_all_air_filt
+            total_unions_air_filt["ALL"] += union_all_air_filt
 
+            # confusion matrix
             confusstion_matrix += vis_pdl1.get_confusion_matrix(4, gt_class_ids, r["class_ids"], r["scores"],
                                                                       overlaps, [], threshold=0.5)
             confusion_matrix_by_pixel_temp, gt_areas_temp = \
@@ -328,6 +349,10 @@ class PDL1NetTester:
             metric_data["IoUs"] = IoUs
             metric_data["IoU_per_image"] = IoU_per_image
             metric_data["IoU_per_image_air_filt"] = IoU_per_image_air_filt
+            metric_data["total_intersections"] = total_intersections
+            metric_data["total_unions"] = total_unions
+            metric_data["total_intersections_air_filt"] = total_intersections_air_filt
+            metric_data["total_unions_air_filt"] = total_unions_air_filt
             with open(output_file, 'wb') as out_file:
                 pickle.dump(metric_data, out_file)
 
@@ -368,7 +393,7 @@ class PDL1NetTester:
             for key in accuracy_per_image.keys():
                 custom_accuracy += accuracy_per_image[key] * gt_tumor_area_per_image[key]
                 total_gt_area += gt_tumor_area_per_image[key]
-                file.write("custom accuracy for image {} is {} with gt area {}. "
+                file.write("custom accuracy for image {} is {} with gt area {}.  "
                            "IoU: {}, negative IoU: {}, positive IoU: {}, other IoU: {}\n".
                            format(key, accuracy_per_image[key], gt_tumor_area_per_image[key],
                                   IoU_per_image["ALL"][key], IoU_per_image["NEGATIVE"][key],
@@ -377,7 +402,7 @@ class PDL1NetTester:
             for key in accuracy_per_image_air_filt.keys():
                 custom_accuracy_air_filt += accuracy_per_image_air_filt[key] * gt_tumor_area_per_image_air_filt[key]
                 total_gt_area_air_filt += gt_tumor_area_per_image_air_filt[key]
-                file.write("custom accuracy for image {} is {} with gt area {}. "
+                file.write("custom accuracy for image {} is {} with gt area {}.  "
                            "IoU: {}, negative IoU: {}, positive IoU: {}, other IoU: {}\n".
                            format(key, accuracy_per_image_air_filt[key], gt_tumor_area_per_image_air_filt[key],
                                   IoU_per_image_air_filt["ALL"][key], IoU_per_image_air_filt["NEGATIVE"][key],
@@ -386,15 +411,25 @@ class PDL1NetTester:
             weighted_avg_accuracy = custom_accuracy / total_gt_area
             file.write("total accuracy (average was weighted by gt area): {}\n".format(weighted_avg_accuracy))
             weighted_avg_accuracy_air_filt = custom_accuracy_air_filt / total_gt_area_air_filt
-            file.write("total accuracy for air filtered (average was weighted by gt area): {}".format(weighted_avg_accuracy_air_filt))
-            file.write("average IoU per image: All classes: {}, Negative: {}, Positive: {}, Other: {}".format(
+            file.write("total accuracy for air filtered (average was weighted by gt area): {}\n".format(weighted_avg_accuracy_air_filt))
+            file.write("average IoU per image: All classes: {}, Negative: {}, Positive: {}, Other: {}\n".format(
                 np.mean(list(IoU_per_image["ALL"].values())), np.mean(list(IoU_per_image["NEGATIVE"].values())),
                 np.mean(list(IoU_per_image["POSITIVE"].values())), np.mean(list(IoU_per_image["OTHER"].values())
                                                                            )))
-            file.write("average IoU per image air filtered: All classes: {}, Negative: {}, Positive: {}, Other: {}".format(
+            file.write("average IoU per image air filtered: All classes: {}, Negative: {}, Positive: {}, Other: {}\n".format(
                 np.mean(list(IoU_per_image_air_filt["ALL"].values())), np.mean(list(IoU_per_image_air_filt["NEGATIVE"].values())),
                 np.mean(list(IoU_per_image_air_filt["POSITIVE"].values())), np.mean(list(IoU_per_image_air_filt["OTHER"].values())
                                                                                     )))
+            file.write("total IoU: All classes: {}, Negative: {}, Positive: {}, Other: {}\n".format(
+                total_intersections["ALL"] / total_unions["ALL"],
+                total_intersections["NEGATIVE"] / total_unions["NEGATIVE"],
+                total_intersections["POSITIVE"] / total_unions["POSITIVE"],
+                total_intersections["OTHER"] / total_unions["OTHER"]))
+            file.write("total IoU air filtered: All classes: {}, Negative: {}, Positive: {}, Other: {}\n".format(
+                total_intersections_air_filt["ALL"] / total_unions_air_filt["ALL"],
+                total_intersections_air_filt["NEGATIVE"] / total_unions_air_filt["NEGATIVE"],
+                total_intersections_air_filt["POSITIVE"] / total_unions_air_filt["POSITIVE"],
+                total_intersections_air_filt["OTHER"] / total_unions_air_filt["OTHER"]))
 
             total_correct_categories = 0
             file.write("\n\nscore by area per image:\n")
@@ -404,7 +439,7 @@ class PDL1NetTester:
                                                             areas_per_image[key][2], areas_per_image[key][3])
                 if correct_category:
                     total_correct_categories += 1
-                file.write("image {}: prediction score: {}, prediction category: {}"
+                file.write("image {}: prediction score: {}, prediction category: {}, "
                            "gt score: {}, gt category: {}\n".format(key, pred_score, pred_category, gt_score, gt_category))
             file.write("correct categories: {}% ({})\n".format(
                 total_correct_categories / len(areas_per_image.keys()) * 100, total_correct_categories))
@@ -417,7 +452,7 @@ class PDL1NetTester:
                                                             areas_per_image_air_filt[key][2], areas_per_image_air_filt[key][3])
                 if correct_category:
                     total_correct_categories_air_filt += 1
-                file.write("image {}: prediction score: {}, prediction category: {}"
+                file.write("image {}: prediction score: {}, prediction category: {}, "
                            "gt score: {}, gt category: {}\n".format(key, pred_score, pred_category, gt_score,
                                                                     gt_category))
             file.write("correct categories air filtered: {}% ({})\n".format(
@@ -436,7 +471,7 @@ class PDL1NetTester:
                                                              areas_per_image[key][3])
                 if correct_category:
                     total_correct_categories_cell_count += 1
-                file.write("image {}: prediction score: {}, prediction category: {}"
+                file.write("image {}: prediction score: {}, prediction category: {}, "
                            "gt score: {}, gt category: {}\n".format(key, pred_score, pred_category, gt_score,
                                                                     gt_category))
             file.write("correct categories: {}% ({})\n".format(

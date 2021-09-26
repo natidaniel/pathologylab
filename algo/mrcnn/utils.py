@@ -88,16 +88,21 @@ def compute_image_iou(pred_img_masks, pred_img_class_ids,
     # pixeles with class other than the labels in "class_ids_to_compute" will be
     # unlabeled and will not participant in the IOU computation
     for label in class_ids_to_compute:
-        class_mask_pred = get_class_mask(label, pred_img_masks, pred_img_class_ids)
-        class_mask_gt = get_class_mask(label, gt_img_masks, gt_img_class_ids)
+        if label == 0:
+            class_mask_pred = get_class_other_mask(pred_img_masks, pred_img_class_ids)
+            class_mask_gt = get_class_other_mask(gt_img_masks, gt_img_class_ids)
+        else:
+            class_mask_pred = get_class_mask(label, pred_img_masks, pred_img_class_ids)
+            class_mask_gt = get_class_mask(label, gt_img_masks, gt_img_class_ids)
         # add 1 to the label, so label 0 will not get confused with unlabeled pixels
         pred_mask += ((label + 1) * class_mask_pred)
         gt_mask += ((label + 1) * class_mask_gt)
+
     intersections = np.sum((pred_mask != 0) * (pred_mask == gt_mask))
     unions = np.sum(pred_mask != 0) + np.sum(gt_mask != 0) - intersections
     if unions == 0:
-        return 0
-    return intersections / unions
+        return 1, intersections, unions
+    return intersections / unions, intersections, unions
 
 
 def compute_overlaps(boxes1, boxes2):
@@ -702,6 +707,20 @@ def get_class_mask(target_class_id, masks_lists, class_ids):
         if class_id == target_class_id:
             mask = np.logical_or(mask, masks_lists[:, :, ind])
     return mask
+
+
+def get_class_other_mask(masks_lists, class_ids):
+    """
+    return the mask of the 'other' class for the whole image from the list of all the
+    roi masks
+    :param masks_lists: the list of all the masks to compute the image masks from
+    :param class_ids: the class id for each roi in the masks list
+    :return: mask (binary image) of the given class
+    """
+    mask = np.zeros((1024, 1024), dtype=bool)
+    for ind, class_id in enumerate(class_ids):
+        mask = np.logical_or(mask, masks_lists[:, :, ind])
+    return np.logical_not(mask)
 
 
 def trim_zeros(x):
