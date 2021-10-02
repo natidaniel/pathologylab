@@ -16,15 +16,15 @@ import cv2
 import numpy as np
 import sys
 
-BG_PERCENT_TH = 97 # won't filter
+BG_PERCENT_TH = 95 # won't filter
 H_EXTREME_PERCENT_TH = 85 # won't filter
-BW_H_TH = 0.9
+BW_H_TH = 0.8
 BW_L_TH = 0.1
 H_H_TH = 330
 H_L_TH = 250
     
 def convert(data):
-    UNIT_X, UNIT_Y = 2144, 2144
+    UNIT_X, UNIT_Y = 1024, 1024
     try:
         fname, input_dir, output_dir = data
         save_name = fname.split(".")[0]
