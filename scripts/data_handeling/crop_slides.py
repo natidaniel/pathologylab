@@ -60,8 +60,8 @@ def convert(data):
 
                     bgPercent =  ((float(numWhitePixels) + float(numBlackPixels))/ float(numPixels)) * 100.0   
 
-                    filename_good = output_dir + "/good/" + save_name + "_" + str(i) + "_" + str(j) + ".jpg"
-                    filename_bad = output_dir + "/bad/" + save_name + "_" + str(i) + "_" + str(j) + "_bg:" +str(format(bgPercent, '.2f')) + ".jpg"
+                    filename_good = os.path.join(output_dir, "good", save_name + "_" + str(i) + "_" + str(j) + ".jpg")
+                    filename_bad = os.path.join(output_dir, "bad", save_name + "_" + str(i) + "_" + str(j) + "_bg:" +str(format(bgPercent, '.2f')) + ".jpg")
                     if ( bgPercent < float(BG_PERCENT_TH)):
                         img.save(filename_good)
                     else:
