@@ -17,7 +17,7 @@ class PDL1NetDataset(utils.Dataset):
         super().__init__(class_map)
         self.active_inflammation_tag = active_inflammation_tag
 
-    def load_pdl1net_dataset(self, dataset_dir, subset, synthetic=False):
+    def load_pdl1net_dataset(self, dataset_dir, subset, synthetic=False, real=False):
         """Load a subset of the PDL1 dataset.
         dataset_dir: Root directory of the dataset.
         subset: Subset to load: train or val
@@ -87,6 +87,23 @@ class PDL1NetDataset(utils.Dataset):
                         label_path=label_path,
                         classes=classes,
                         air_mask=air_mask)
+
+        elif real:
+            dataset_dir = dataset_dir.split(subset)[0]
+            images_path = os.path.join(dataset_dir, "good")
+            images_names = os.listdir(images_path)
+
+            for image_name in images_names:
+                image_path = os.path.join(images_path, image_name)
+                # image = skimage.io.imread(image_path)
+                # height, width = image.shape[:2]
+                self.add_image(
+                    "PDL1",
+                    image_id=image_name,  # use file name as a unique image id
+                    path=image_path,
+                    width=1024, height=1024,  # assuming the patch crop size is 1024
+                    real=True,
+                    classes=[])
 
         else:
             json_dir = os.path.join(dataset_dir, "via_export_json.json")
@@ -161,6 +178,10 @@ class PDL1NetDataset(utils.Dataset):
             # one class ID only, we return an array of 1s
 
             return mask, mask_classes
+
+        if "real" in info.keys() and info["real"]:
+            mask = np.zeros([info["height"], info["width"], len(info["classes"])], dtype=np.uint8)
+            return mask, np.array([])
 
         # Convert polygons to a bitmap mask of shape
         # [height, width, instance_count]

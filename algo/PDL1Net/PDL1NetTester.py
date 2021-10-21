@@ -85,7 +85,7 @@ class PDL1NetTester:
         skimage.io.imsave(file_name, splash)
         print("Saved to ", file_name)
 
-    def test_sequence(self, show_image=True, sample=1, result_dir_name=None):
+    def test_sequence(self, show_image=True, sample=1, result_dir_name=None, real_slide=False):
         """
         Tests the model on the test dataset
         calculate and plots the Confusion matrix
@@ -117,7 +117,8 @@ class PDL1NetTester:
 
         # load test dataset using args.dataset as to the main as argument
         dataset_val = PDL1NetDataset()
-        dataset_val.load_pdl1net_dataset(self.args.dataset, "val")
+        dataset_val.load_pdl1net_dataset(self.args.dataset, "val", real=self.args.real)
+
         dataset_val.prepare()
 
         print("start test")
@@ -219,11 +220,12 @@ class PDL1NetTester:
                 # save ground truth images
                 # vis_pdl1.imwrite_mask(image, gt_masks, gt_class_ids,
                 #                       savename="{}_gt".format(image_name))
-                vis_pdl1.imwrite_mask(image, gt_masks_air_filt, gt_class_ids,
-                                      savename="{}_gt_air_filt".format(image_name))
-                # print("saving rois boxes")
-                vis_pdl1.imwrite_boxes(image, r['rois'], r['masks'], r['class_ids'], dataset_val.class_names,
-                                       r['scores'], savename="{}".format(image_name))
+                if not real_slide:
+                    vis_pdl1.imwrite_mask(image, gt_masks_air_filt, gt_class_ids,
+                                          savename="{}_gt_air_filt".format(image_name))
+                    # print("saving rois boxes")
+                    vis_pdl1.imwrite_boxes(image, r['rois'], r['masks'], r['class_ids'], dataset_val.class_names,
+                                           r['scores'], savename="{}".format(image_name))
                 # save image of the gt of each class separately
                 # vis_pdl1.imwrite_class(image, gt_masks, gt_class_ids, 2,
                 #                        savename="{}_negative".format(image_name))
@@ -480,6 +482,17 @@ class PDL1NetTester:
                 if correct_category:
                     total_correct_categories_cell_count += 1
                 categories_confusion_matrix_cell_count[category_to_int[gt_category], category_to_int[pred_category]] += 1
+
+                if cell_count_per_image_gt[key]["POSITIVE"] == 0:
+                    positive_error_percentage = 0
+                else:
+                    positive_error_percentage = (np.abs(cell_count_per_image[key]["POSITIVE"] - cell_count_per_image_gt[
+                        key]["POSITIVE"]) / cell_count_per_image_gt[key]["POSITIVE"]) * 100
+                if cell_count_per_image_gt[key]["NEGATIVE"] == 0:
+                    negative_error_percentage = 0
+                else:
+                    negative_error_percentage = (np.abs(cell_count_per_image[key]["NEGATIVE"] - cell_count_per_image_gt[
+                        key]["NEGATIVE"]) / cell_count_per_image_gt[key]["NEGATIVE"]) * 100
                 file.write("image {}: prediction score: {}, prediction category: {}, "
                            "gt score: {}, gt category: {}, "
                            "prediction positive cell count: {}, prediction negative cell count: {},"
@@ -491,10 +504,8 @@ class PDL1NetTester:
                                        cell_count_per_image[key]["NEGATIVE"],
                                        cell_count_per_image_gt[key]["POSITIVE"],
                                        cell_count_per_image_gt[key]["NEGATIVE"],
-                                       (np.abs(cell_count_per_image[key]["POSITIVE"] - cell_count_per_image_gt[key][
-                                           "POSITIVE"]) / cell_count_per_image_gt[key]["POSITIVE"]) * 100,
-                                       (np.abs(cell_count_per_image[key]["NEGATIVE"] - cell_count_per_image_gt[key][
-                                           "NEGATIVE"]) / cell_count_per_image_gt[key]["NEGATIVE"]) * 100
+                                       positive_error_percentage,
+                                       negative_error_percentage
                                        ))
                 total_positive_cell_count_pred += cell_count_per_image[key]["POSITIVE"]
                 total_negative_cell_count_pred += cell_count_per_image[key]["NEGATIVE"]
@@ -504,12 +515,30 @@ class PDL1NetTester:
                 total_correct_categories_cell_count / len(cell_count_per_image.keys()) * 100,
                 total_correct_categories_cell_count))
 
-            pred_score = areas[0] / (areas[0] + areas[1])
-            gt_score = areas[2] / (areas[2] + areas[3])
-            pred_score_air_filt = areas_air_filt[0] / (areas_air_filt[0] + areas_air_filt[1])
-            gt_score_air_filt = areas_air_filt[2] / (areas_air_filt[2] + areas_air_filt[3])
-            pred_score_cell_count = total_positive_cell_count_pred / (total_positive_cell_count_pred + total_negative_cell_count_pred)
-            gt_score_cell_count = total_positive_cell_count_gt / (total_positive_cell_count_gt + total_negative_cell_count_gt)
+            if areas[0] + areas[1] == 0:
+                pred_score = 0
+            else:
+                pred_score = areas[0] / (areas[0] + areas[1])
+            if areas[2] + areas[3] == 0:
+                gt_score = 0
+            else:
+                gt_score = areas[2] / (areas[2] + areas[3])
+            if areas_air_filt[0] + areas_air_filt[1] == 0:
+                pred_score_air_filt = 0
+            else:
+                pred_score_air_filt = areas_air_filt[0] / (areas_air_filt[0] + areas_air_filt[1])
+            if areas_air_filt[2] + areas_air_filt[3] == 0:
+                gt_score_air_filt = 0
+            else:
+                gt_score_air_filt = areas_air_filt[2] / (areas_air_filt[2] + areas_air_filt[3])
+            if total_positive_cell_count_pred + total_negative_cell_count_pred == 0:
+                pred_score_cell_count = 0
+            else:
+                pred_score_cell_count = total_positive_cell_count_pred / (total_positive_cell_count_pred + total_negative_cell_count_pred)
+            if total_positive_cell_count_gt + total_negative_cell_count_gt == 0:
+                gt_score_cell_count = 0
+            else:
+                gt_score_cell_count = total_positive_cell_count_gt / (total_positive_cell_count_gt + total_negative_cell_count_gt)
             file.write("\ntotal predicted wsi score of all patches (by area): {}\n".format(pred_score))
             file.write("total ground truth wsi score of all patches (by area): {}\n".format(gt_score))
             file.write("total predicted wsi score of all patches (by area, air filtered): {}\n".format(pred_score_air_filt))
@@ -517,32 +546,33 @@ class PDL1NetTester:
             file.write("total predicted wsi score of all patches (by cell count): {}\n".format(pred_score_cell_count))
             file.write("total ground truth wsi score of all patches (by cell count): {}\n".format(gt_score_cell_count))
 
-            vis_pdl1.plot_hist(score_accuracy, savename="area_diff_hist")
-            # create new class list to replace the 'BG' with 'other'
-            right_indices = [4, 2, 3]
-            copy_class_names = [dataset_val.class_names[i] for i in right_indices]
-            indices_no_inf = [0] + list(range(2, 4))
-            confusstion_matrix = confusstion_matrix[indices_no_inf, :][:, indices_no_inf]
-            confusstion_matrix = confusstion_matrix / np.sum(confusstion_matrix)
-            vis_pdl1.plot_confusion_matrix(confusstion_matrix, copy_class_names, savename="confussion_matrix")
-            # normalize confusion matrix
-            # for col in range(3):
-            #     confusion_matrix_by_pixel[:, col] = confusion_matrix_by_pixel[:, col] / gt_areas[col]
-            confusion_matrix_by_pixel = confusion_matrix_by_pixel / np.sum(confusion_matrix_by_pixel, 0)
-            vis_pdl1.plot_confusion_matrix(confusion_matrix_by_pixel,
-                                           ["other", "pdl-negative", "pdl-positive"], savename="confusion_matrix")
-            # for col in range(3):
-            #     confusion_matrix_by_pixel_air_filt[:, col] = confusion_matrix_by_pixel_air_filt[:, col] / gt_areas_air_filt[col]
-            confusion_matrix_by_pixel_air_filt = confusion_matrix_by_pixel_air_filt / np.sum(confusion_matrix_by_pixel_air_filt, 0)
-            vis_pdl1.plot_confusion_matrix(confusion_matrix_by_pixel_air_filt,
-                                           ["other", "pdl-negative", "pdl-positive"], savename="confusion_matrix_air_filtered")
+            if not real_slide:  # plot all the metrics only on test data (which has ground truth)
+                vis_pdl1.plot_hist(score_accuracy, savename="area_diff_hist")
+                # create new class list to replace the 'BG' with 'other'
+                right_indices = [4, 2, 3]
+                copy_class_names = [dataset_val.class_names[i] for i in right_indices]
+                indices_no_inf = [0] + list(range(2, 4))
+                confusstion_matrix = confusstion_matrix[indices_no_inf, :][:, indices_no_inf]
+                confusstion_matrix = confusstion_matrix / np.sum(confusstion_matrix)
+                vis_pdl1.plot_confusion_matrix(confusstion_matrix, copy_class_names, savename="confussion_matrix")
+                # normalize confusion matrix
+                # for col in range(3):
+                #     confusion_matrix_by_pixel[:, col] = confusion_matrix_by_pixel[:, col] / gt_areas[col]
+                confusion_matrix_by_pixel = confusion_matrix_by_pixel / np.sum(confusion_matrix_by_pixel, 0)
+                vis_pdl1.plot_confusion_matrix(confusion_matrix_by_pixel,
+                                               ["other", "pdl-negative", "pdl-positive"], savename="confusion_matrix")
+                # for col in range(3):
+                #     confusion_matrix_by_pixel_air_filt[:, col] = confusion_matrix_by_pixel_air_filt[:, col] / gt_areas_air_filt[col]
+                confusion_matrix_by_pixel_air_filt = confusion_matrix_by_pixel_air_filt / np.sum(confusion_matrix_by_pixel_air_filt, 0)
+                vis_pdl1.plot_confusion_matrix(confusion_matrix_by_pixel_air_filt,
+                                               ["other", "pdl-negative", "pdl-positive"], savename="confusion_matrix_air_filtered")
 
-            categories_confusion_matrix_area = categories_confusion_matrix_area / np.sum(
-                categories_confusion_matrix_area, 0)
-            vis_pdl1.plot_confusion_matrix(categories_confusion_matrix_area,
-                                           ["LOW", "MID", "HIGH"], savename="confusion_matrix_categories_area")
+                categories_confusion_matrix_area = categories_confusion_matrix_area / np.sum(
+                    categories_confusion_matrix_area, 0)
+                vis_pdl1.plot_confusion_matrix(categories_confusion_matrix_area,
+                                               ["LOW", "MID", "HIGH"], savename="confusion_matrix_categories_area")
 
-            categories_confusion_matrix_cell_count = categories_confusion_matrix_cell_count / np.sum(
-                categories_confusion_matrix_cell_count, 0)
-            vis_pdl1.plot_confusion_matrix(categories_confusion_matrix_cell_count,
-                                           ["LOW", "MID", "HIGH"], savename="confusion_matrix_categories_cell_count")
+                categories_confusion_matrix_cell_count = categories_confusion_matrix_cell_count / np.sum(
+                    categories_confusion_matrix_cell_count, 0)
+                vis_pdl1.plot_confusion_matrix(categories_confusion_matrix_cell_count,
+                                               ["LOW", "MID", "HIGH"], savename="confusion_matrix_categories_cell_count")

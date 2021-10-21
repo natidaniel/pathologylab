@@ -97,6 +97,9 @@ if __name__ == '__main__':
     parser.add_argument('--synthetic', required=False,
                         action="store_true",
                         help='True if the data is synthetic')
+    parser.add_argument('--real', required=False,
+                        action="store_true",
+                        help='True if the data is real cropped slide')
     args = parser.parse_args()
 
     # Validate arguments
@@ -168,7 +171,7 @@ if __name__ == '__main__':
         Tester.detect_and_show_mask(image_path=args.image)
     elif args.command == "test":
         Tester = PDL1NetTester.PDL1NetTester(model, args)
-        Tester.test_sequence(result_dir_name=args.result_dir)
+        Tester.test_sequence(result_dir_name=args.result_dir, real_slide=args.real)
     else:
         print("'{}' is not recognized. "
               "Use 'train' or 'splash'".format(args.command))
