@@ -567,11 +567,13 @@ class PDL1NetTester:
                 vis_pdl1.plot_confusion_matrix(confusion_matrix_by_pixel_air_filt,
                                                ["other", "pdl-negative", "pdl-positive"], savename="confusion_matrix_air_filtered")
 
+                categories_confusion_matrix_area = categories_confusion_matrix_area.transpose()
                 categories_confusion_matrix_area = categories_confusion_matrix_area / np.sum(
                     categories_confusion_matrix_area, 0)
                 vis_pdl1.plot_confusion_matrix(categories_confusion_matrix_area,
                                                ["LOW", "MID", "HIGH"], savename="confusion_matrix_categories_area")
 
+                categories_confusion_matrix_cell_count = categories_confusion_matrix_cell_count.transpose()
                 categories_confusion_matrix_cell_count = categories_confusion_matrix_cell_count / np.sum(
                     categories_confusion_matrix_cell_count, 0)
                 vis_pdl1.plot_confusion_matrix(categories_confusion_matrix_cell_count,
