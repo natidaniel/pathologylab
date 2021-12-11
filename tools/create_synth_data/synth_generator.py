@@ -144,6 +144,7 @@ class ShapesDataset(utils.Dataset):
         """Draws a shape from the given specs."""
         # Get the center x, y and the size s
         x, y, s = dims
+
         if shape == self.config.CLASSES[0]:
             image = cv2.rectangle(image, (x - s, y - s),
                                   (x + s, y + s), color, -1)
