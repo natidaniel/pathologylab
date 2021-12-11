@@ -17,6 +17,11 @@ import colorsys
 from PIL import Image
 import utils
 
+#  set a color palette with equidistant color
+CONST_COLOR_PALETTE = [colorsys.hsv_to_rgb(i / 4, 1.0, 1.0) for i in range(4)]
+for i, color in enumerate(CONST_COLOR_PALETTE):
+    CONST_COLOR_PALETTE[i] = tuple([int(color[j] * 255) for j in range(3)])  # convert color to 255 integer dim'
+
 
 class ShapesDataset(utils.Dataset):
     """Generates the shapes synthetic dataset. The dataset consists of simple
@@ -36,14 +41,16 @@ class ShapesDataset(utils.Dataset):
             # Add classes
             self.add_class(self.config.DATA_NAME, i + 1, c)
 
-        self.COLOR_PALLET = []
+        self.COLOR_PALETTE = []
         if self.config.IS_CONST_COLOR_SHAPES:
-            for _ in range(self.config.NUM_CLASSES):
-                color = colorsys.hsv_to_rgb(random.rand(), 1.0, 1.0)  # ensures no brown color is chosen
-                color = tuple([int(color[i] * 255) for i in range(3)])  # convert color to 255 integer dim'
-                self.COLOR_PALLET.append(color)
+            # for _ in range(self.config.NUM_CLASSES):
+            #     # color = colorsys.hsv_to_rgb(random.rand(), 1.0, 1.0)  # ensures no brown color is chosen
+            #
+            #     color = tuple([int(color[i] * 255) for i in range(3)])  # convert color to 255 integer dim'
+            #     self.COLOR_PALLET.append(color)
+
             # match classes tags to colors
-            self.COLOR_PALLET = dict(zip(self.config.CLASSES,  self.COLOR_PALLET))
+            self.COLOR_PALETTE = dict(zip(self.config.CLASSES, CONST_COLOR_PALETTE))
 
         self.PATH_TO_IMAGE_DIR = self.config.PATH_TO_IMAGE_DIR
         self.PATH_SAVE_IMAGES = self.config.IMAGE_DIR
@@ -83,8 +90,13 @@ class ShapesDataset(utils.Dataset):
             image = np.array(image.resize([info['height'], info['width']]))
         else:  # creates images with white background
             image = np.ones([info['height'], info['width'], 3], dtype=np.uint8) * 255
-
-        for shape, color, dims in info['shapes']:
+        # sorting the shape list due to the priority of each class
+        # that way we ensure that the stronger classes overdraw the weaker ones
+        copy_info = info['shapes']
+        sort_func = lambda elem : self.config.CLASS_TO_ID[elem[0]]
+        copy_info.sort(key=sort_func)
+        # draw the shapes
+        for shape, color, dims in copy_info:
             image = self.draw_shape(image, shape, dims, color)
 
         image_path = os.path.join(self.PATH_SAVE_IMAGES, '{:05d}'.format(image_id))
@@ -168,7 +180,7 @@ class ShapesDataset(utils.Dataset):
             color = tuple([int(color[i]*255) for i in range(3)])  # convert color to 255 integer dim'
         else:
             #  select the color from pre chosen pallet (see in load_shape)
-            color = self.COLOR_PALLET[shape]
+            color = self.COLOR_PALETTE[shape]
         # Center x, y
         buffer = 50
         y = random.randint(buffer, height - buffer - 1)
@@ -192,6 +204,8 @@ class ShapesDataset(utils.Dataset):
             x, y, s = dims
             boxes.append([y - s, x - s, y + s, x + s])
 
-        keep_ixs = utils.non_max_suppression(np.array(boxes), np.arange(N), self.config.OVERLAPING_MAX_IOU)
+        keep_ixs_area = utils.suppress_inclusion(np.array(boxes), np.arange(N))
+        keep_ixs_iou = utils.non_max_suppression(np.array(boxes), np.arange(N), self.config.OVERLAPING_MAX_IOU)
+        keep_ixs = np.intersect1d(keep_ixs_area, keep_ixs_iou)
         shapes = [s for i, s in enumerate(shapes) if i in keep_ixs]
         return shapes

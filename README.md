@@ -1,4 +1,7 @@
 # PathologyLab
+
+### November 2020 - The active and more updated branch is "rearrange", see you there
+
 ## Description
 This platform was created to provide a general and simple framework for pathological uses.
 Our net (PDL1Net) deals with segmantation and counting of PD-L1 cells in WSIs of lung cancer patients, but can use for other implementations as well.
