@@ -23,8 +23,8 @@ BW_L_TH = 0.1
 H_H_TH = 330
 H_L_TH = 250
     
-def convert(data):
-    UNIT_X, UNIT_Y = 1024, 1024
+def convert(data, size, row):
+    UNIT_X, UNIT_Y = int(size), int(size)
     try:
         fname, input_dir, output_dir = data
         save_name = fname.split(".")[0]
@@ -35,8 +35,8 @@ def convert(data):
         w_rep, h_rep = int(w/UNIT_X)+1, int(h/UNIT_Y)+1
         w_end, h_end = w%UNIT_X, h%UNIT_Y
         w_size, h_size = UNIT_X, UNIT_Y
-        w_start, h_start = 0, 0
-        for i in range(h_rep):
+        w_start, h_start = 0, row * UNIT_Y
+        for i in range(row, h_rep):
             for j in range(w_rep):
                     
                 print(i, " / ", h_rep, "  :  ", j, " / ", w_rep)
@@ -85,9 +85,18 @@ def main():
                         help="Directory name where the input image is saved. default='./input'")
     parser.add_argument("--output", "-o", default="./output",
                         help="Directory name where the converted image is saved. default='./output'")
+    parser.add_argument("--size", "-s", default=1024,
+                        help="Size of each patch. default=1024")
+    parser.add_argument("--row", "-r", default=0,
+                        help="First row to start croping from. default=0")
 
     args = parser.parse_args()
     print("------- Program Started -------")
+    try:
+        os.mkdir(os.path.join(args.output, "good"))
+        os.mkdir(os.path.join(args.output, "bad"))
+    except:
+        pass
 
     try:
         f_lst = sorted([f for f in os.listdir(args.input) if ".mrxs" in f])
@@ -95,7 +104,7 @@ def main():
         
         print("------- Convert Started -------", datetime.now())
         for slide_file in f_lst:
-            convert(slide_file)
+            convert(slide_file, args.size, int(args.row))
         print("------- Convert Ended -------", datetime.now())
 
     except:
