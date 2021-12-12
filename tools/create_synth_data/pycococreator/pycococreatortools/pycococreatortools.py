@@ -7,7 +7,7 @@ import numpy as np
 from itertools import groupby
 from skimage import measure
 from PIL import Image
-from pycocotools import mask
+# from pycocotools import mask
 
 convert = lambda text: int(text) if text.isdigit() else text.lower()
 natrual_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ]
