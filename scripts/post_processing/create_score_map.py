@@ -5,7 +5,7 @@ import argparse
 import pickle
 import csv
 import os
-from PIL import Image
+import matplotlib.pyplot as plt
 
 def extract_row_and_col(img_name):
     row = img_name.split("_")[2]
@@ -25,7 +25,7 @@ def create_score_map(input_path, output_path):
             max_row = max(int(row), max_row)
             max_col = max(int(col), max_col)
         slide_matrix = np.zeros((max_row, max_col))
-        slide_matrix = slide_matrix - 1
+        slide_matrix[:] = np.nan
         for img_name in results_data['areas_per_image_air_filt']:
             row, col = extract_row_and_col(img_name)
             img_areas = results_data['areas_per_image_air_filt'][img_name]
@@ -40,8 +40,10 @@ def create_score_map(input_path, output_path):
                 new_row.append(slide_matrix[i, j])
             csv_writer.writerow(new_row)
             
-    img = Image.fromarray(np.uint8(slide_matrix * 255) , 'L')
-    img.save(os.path.join(output_path, "real_slide_location_map.png"), format="png")
+    plt.figure()
+    plt.imshow(slide_matrix, cmap=plt.get_cmap('jet') )
+    plt.colorbar()
+    plt.savefig(os.path.join(output_path, "real_slide_location_map.png"))
         
 def main():
     parser = argparse.ArgumentParser(description='This script is ...'
